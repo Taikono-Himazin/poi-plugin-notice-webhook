@@ -1,0 +1,20 @@
+{
+  "name": "poi-plugin-notice-webhook-infra",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "cdk": "cdk"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.170.0",
+    "constructs": "^10.0.0",
+    "payjp": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "aws-cdk": "^2.170.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.0.0"
+  }
+}
