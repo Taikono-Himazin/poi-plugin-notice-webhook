@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ============================================================ -->
+    <!-- AWS Cloud 境界                                               -->
+    <!-- ============================================================ -->
+    <mxCell id="10" value="AWS Cloud" style="points=[[0,0],[0.25,0],[0.5,0],[0.75,0],[1,0],[1,0.25],[1,0.5],[1,0.75],[1,1],[0.75,1],[0.5,1],[0.25,1],[0,1],[0,0.75],[0,0.5],[0,0.25]];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud_alt;strokeColor=#232F3E;fillColor=#FAFAFA;verticalLabelPosition=top;verticalAlign=bottom;align=center;fontStyle=1;fontSize=14;dashed=0;sketch=0;" vertex="1" parent="1">
+      <mxGeometry x="210" y="60" width="1110" height="860" as="geometry" />
+    </mxCell>
+
+    <!-- 外部サービス (右) 境界 -->
+    <mxCell id="11" value="配信先（外部）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontStyle=1;fontSize=12;verticalAlign=top;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="1360" y="230" width="140" height="200" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- 外部: poi クライアント・Stripe                               -->
+    <!-- ============================================================ -->
+    <mxCell id="20" value="poi クライアント" style="shape=mxgraph.aws4.user;fillColor=#232F3E;strokeColor=none;labelBackgroundColor=#ffffff;fontStyle=1;fontSize=11;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="1">
+      <mxGeometry x="60" y="290" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="21" value="Stripe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#635BFF;strokeColor=#5950e3;fontColor=#ffffff;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="50" y="560" width="80" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- Cognito                                                      -->
+    <!-- ============================================================ -->
+    <mxCell id="30" value="Cognito" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#DD344C;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=11;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cognito;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="350" y="100" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- API Gateway                                                  -->
+    <!-- ============================================================ -->
+    <mxCell id="31" value="API Gateway" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=11;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="350" y="340" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- Lambda 関数群                                                -->
+    <!-- ============================================================ -->
+    <mxCell id="32" value="ingest Lambda&#xa;(通知受信)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#ED7100;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="570" y="210" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="33" value="deliver Lambda&#xa;(通知配信)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#ED7100;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="800" y="210" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="34" value="tokens Lambda&#xa;(トークン管理)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#ED7100;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="570" y="410" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="35" value="billing Lambda&#xa;(請求管理)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#ED7100;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="570" y="560" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="36" value="stripe webhook&#xa;Lambda" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#ED7100;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="570" y="710" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- EventBridge Scheduler                                        -->
+    <!-- ============================================================ -->
+    <mxCell id="37" value="EventBridge&#xa;Scheduler" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#E7157B;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="800" y="100" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- DynamoDB テーブル                                            -->
+    <!-- ============================================================ -->
+    <mxCell id="40" value="notifications&#xa;(遅延配信キュー)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#2E73B8;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="1040" y="170" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="41" value="tokens&#xa;(Webhook 設定)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#2E73B8;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="1040" y="410" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="42" value="accounts&#xa;(ユーザー・プラン)" style="outlineConnect=0;fontColor=#232F3E;gradientColor=none;strokeColor=none;fillColor=#2E73B8;labelBackgroundColor=#ffffff;labelBorderColor=none;fontStyle=1;align=center;fontSize=10;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;verticalLabelPosition=bottom;verticalAlign=top;" vertex="1" parent="1">
+      <mxGeometry x="1040" y="560" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- 外部配信先                                                   -->
+    <!-- ============================================================ -->
+    <mxCell id="50" value="Discord" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5865f2;strokeColor=#4752c4;fontColor=#ffffff;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1370" y="250" width="100" height="36" as="geometry" />
+    </mxCell>
+
+    <mxCell id="51" value="Slack" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#4a154b;strokeColor=#3c1140;fontColor=#ffffff;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1370" y="300" width="100" height="36" as="geometry" />
+    </mxCell>
+
+    <mxCell id="52" value="LINE Notify" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#06C755;strokeColor=#05a648;fontColor=#ffffff;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="1370" y="350" width="100" height="36" as="geometry" />
+    </mxCell>
+
+    <mxCell id="53" value="Generic Webhook" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#666666;strokeColor=#4d4d4d;fontColor=#ffffff;fontStyle=1;fontSize=10;" vertex="1" parent="1">
+      <mxGeometry x="1370" y="400" width="100" height="36" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- ラベル: プラン説明                                           -->
+    <!-- ============================================================ -->
+    <mxCell id="60" value="&lt;b&gt;無料プラン&lt;/b&gt;: 30通知/月&#xa;&lt;b&gt;有料プラン (¥100/月)&lt;/b&gt;: 無制限 + 遅延配信" style="text;html=1;strokeColor=none;fillColor=#fff2cc;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=1;strokeColor=#d6b656;fontSize=11;spacingLeft=8;" vertex="1" parent="1">
+      <mxGeometry x="220" y="840" width="320" height="50" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- エッジ: 通知フロー（オレンジ）                               -->
+    <!-- ============================================================ -->
+
+    <!-- poi → API GW: 通知 POST -->
+    <mxCell id="100" value="POST /webhooks/{token}" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#FF6600;strokeWidth=2;fontStyle=1;fontSize=10;" edge="1" source="20" target="31" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- API GW → ingest Lambda -->
+    <mxCell id="101" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#FF6600;strokeWidth=2;" edge="1" source="31" target="32" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ingest → deliver (即時配信) -->
+    <mxCell id="102" value="即時配信" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#FF6600;strokeWidth=2;fontStyle=1;fontSize=10;" edge="1" source="32" target="33" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ingest → EventBridge (遅延配信スケジュール登録) -->
+    <mxCell id="103" value="遅延配信 (有料)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#E7157B;strokeWidth=2;fontStyle=1;fontSize=10;dashed=1;" edge="1" source="32" target="37" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="600" y="170" />
+          <mxPoint x="600" y="130" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- EventBridge → deliver Lambda -->
+    <mxCell id="104" value="スケジュール実行" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#E7157B;strokeWidth=2;fontStyle=1;fontSize=10;dashed=1;" edge="1" source="37" target="33" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- deliver → 外部配信先 -->
+    <mxCell id="105" value="HTTP POST" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeColor=#FF6600;strokeWidth=2;fontStyle=1;fontSize=10;" edge="1" source="33" target="50" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="106" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeColor=#FF6600;strokeWidth=2;" edge="1" source="33" target="51" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="107" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeColor=#FF6600;strokeWidth=2;" edge="1" source="33" target="52" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="108" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;strokeColor=#FF6600;strokeWidth=2;" edge="1" source="33" target="53" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ingest → DynamoDB notifications (遅延時保存) -->
+    <mxCell id="109" value="保存 (遅延時)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2E73B8;fontStyle=0;fontSize=10;dashed=1;" edge="1" source="32" target="40" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- deliver → DynamoDB notifications (読み取り・削除) -->
+    <mxCell id="110" value="読み取り・削除" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#2E73B8;fontStyle=0;fontSize=10;dashed=1;" edge="1" source="33" target="40" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ingest → DynamoDB tokens (read) -->
+    <mxCell id="111" value="token 検索" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;strokeColor=#2E73B8;fontStyle=0;fontSize=10;dashed=1;" edge="1" source="32" target="41" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ingest → DynamoDB accounts (quota check/update) -->
+    <mxCell id="112" value="quota 更新" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;strokeColor=#2E73B8;fontStyle=0;fontSize=10;dashed=1;" edge="1" source="32" target="42" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="645" y="360" />
+          <mxPoint x="960" y="360" />
+          <mxPoint x="960" y="575" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- エッジ: 認証フロー（赤）                                     -->
+    <!-- ============================================================ -->
+
+    <!-- Cognito → API GW (JWT 検証) -->
+    <mxCell id="120" value="JWT 検証" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#DD344C;fontStyle=1;fontSize=10;dashed=1;" edge="1" source="30" target="31" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- poi → API GW (認証付き API) -->
+    <mxCell id="121" value="/tokens /billing&#xa;(Cognito JWT)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#DD344C;strokeWidth=1;fontStyle=0;fontSize=10;dashed=1;" edge="1" source="20" target="31" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- API GW → token Lambda -->
+    <mxCell id="122" value="/tokens" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#DD344C;fontStyle=0;fontSize=10;" edge="1" source="31" target="34" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- token Lambda → DynamoDB tokens -->
+    <mxCell id="123" value="CRUD" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#DD344C;fontStyle=0;fontSize=10;" edge="1" source="34" target="41" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- エッジ: 決済フロー（紫）                                     -->
+    <!-- ============================================================ -->
+
+    <!-- API GW → billing Lambda -->
+    <mxCell id="130" value="/billing" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#635BFF;fontStyle=0;fontSize=10;" edge="1" source="31" target="35" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- billing Lambda → Stripe Checkout -->
+    <mxCell id="131" value="Checkout / Portal" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#635BFF;fontStyle=1;fontSize=10;" edge="1" source="35" target="21" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- billing Lambda → DynamoDB accounts -->
+    <mxCell id="132" value="stripeCustomerId" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#635BFF;fontStyle=0;fontSize=10;" edge="1" source="35" target="42" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- API GW → stripe webhook Lambda -->
+    <mxCell id="133" value="/stripe/webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#635BFF;fontStyle=0;fontSize=10;" edge="1" source="31" target="36" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Stripe → stripe webhook Lambda -->
+    <mxCell id="134" value="イベント (署名検証)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#635BFF;fontStyle=1;fontSize=10;" edge="1" source="21" target="36" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- stripe webhook Lambda → DynamoDB accounts (plan更新) -->
+    <mxCell id="135" value="plan 更新" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;strokeColor=#635BFF;fontStyle=1;fontSize=10;" edge="1" source="36" target="42" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- ============================================================ -->
+    <!-- 凡例                                                         -->
+    <!-- ============================================================ -->
+    <mxCell id="200" value="凡例" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+      <mxGeometry x="220" y="770" width="60" height="30" as="geometry" />
+    </mxCell>
+    <mxCell id="201" value="" style="edgeStyle=none;strokeColor=#FF6600;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1">
+      <mxGeometry x="290" y="785" width="40" height="0" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="202" value="通知フロー" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="340" y="778" width="80" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="203" value="" style="edgeStyle=none;strokeColor=#DD344C;strokeWidth=2;dashed=1;" edge="1" parent="1">
+      <mxGeometry x="430" y="785" width="40" height="0" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="204" value="認証フロー" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="480" y="778" width="80" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="205" value="" style="edgeStyle=none;strokeColor=#635BFF;strokeWidth=2;" edge="1" parent="1">
+      <mxGeometry x="570" y="785" width="40" height="0" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="206" value="決済フロー" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="620" y="778" width="80" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="207" value="" style="edgeStyle=none;strokeColor=#2E73B8;strokeWidth=2;dashed=1;" edge="1" parent="1">
+      <mxGeometry x="710" y="785" width="40" height="0" as="geometry"><Array as="points"/></mxGeometry>
+    </mxCell>
+    <mxCell id="208" value="DB アクセス" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=11;" vertex="1" parent="1">
+      <mxGeometry x="760" y="778" width="80" height="20" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

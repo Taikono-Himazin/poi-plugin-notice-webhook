@@ -137,3 +137,13 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# poi-notice-webhook: デプロイ用シークレット・生成ファイル
+aws/.poi-webhook-deploy.env
+aws/.poi-webhook-deploy.json
+aws/aws-outputs.json
+aws/cdk.context.json
+src/aws-outputs.json
+
+# AI アシスタント (Claude Code)
+.claude/

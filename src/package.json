@@ -1,0 +1,37 @@
+{
+  "name": "poi-plugin-notice-webhook",
+  "version": "1.0.0",
+  "description": "艦これ専ブラのpoiの通知をwebhookに対応させる",
+  "main": "index.es",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Taikono-Himazin/poi-notice-webhook.git"
+  },
+  "keywords": [
+    "kankore",
+    "poi",
+    "webhook",
+    "notice"
+  ],
+  "author": "Taikono-Himazin",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Taikono-Himazin/poi-notice-webhook/issues"
+  },
+  "homepage": "https://github.com/Taikono-Himazin/poi-notice-webhook#readme",
+  "dependencies": {
+    "axios": "^1.0.0"
+  },
+  "poiPlugin": {
+    "title": "通知転送",
+    "description": "艦これ専ブラのpoiの通知をwebhookに対応させる",
+    "icon": "fa/paper-plane-o",
+    "i18nDir": "i18n",
+    "apiVer": {
+      "10.0.0": "1.0.0"
+    }
+  }
+}
