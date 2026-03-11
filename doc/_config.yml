@@ -1,0 +1,10 @@
+title: poi-notice-webhook
+description: poi 向け Webhook 通知プラグイン — Discord / Slack / クラウド配信対応
+theme: minima
+lang: ja
+
+header_pages:
+  - index.md
+  - setup.md
+  - usage.md
+  - api.md
