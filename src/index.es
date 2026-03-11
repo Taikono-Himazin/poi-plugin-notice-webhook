@@ -855,15 +855,6 @@ export const reactClass = () => {
     }
   }, [])
 
-  // サンプル JSON (表示用)
-  const exampleMsg = '遠征が完了しました'
-  const exampleOptions = { type: 'expedition', title: 'poi 通知' }
-  const examplePayload = isAws
-    ? buildGenericPayload(exampleMsg, exampleOptions)
-    : webhookType === 'discord' ? buildDiscordPayload(exampleMsg, exampleOptions)
-    : webhookType === 'slack'   ? buildSlackPayload(exampleMsg, exampleOptions)
-    : buildGenericPayload(exampleMsg, exampleOptions)
-
   return (
     <div lang="ja" style={{ padding: '16px', maxWidth: '600px', fontFamily: '"Yu Gothic UI", "Yu Gothic", "Meiryo UI", "Meiryo", "Hiragino Sans", "Hiragino Kaku Gothic ProN", sans-serif' }}>
       <h4>{t('pluginTitle')}</h4>

@@ -77,7 +77,7 @@ https://pay.jp/ でアカウントを作成またはログイン。
 
 ```bash
 # aws/ ディレクトリに移動
-cd path/to/poi-notice-webhook/aws
+cd path/to/poi-plugin-notice-webhook/aws
 
 # 依存パッケージをインストール
 npm install

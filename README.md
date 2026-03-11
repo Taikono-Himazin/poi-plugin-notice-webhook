@@ -1,8 +1,8 @@
-# poi-notice-webhook
+# poi-plugin-notice-webhook
 
 [poi](https://github.com/poooi/poi) 向け Webhook 通知プラグインです。遠征完了・入渠完了・建造完了などのゲームイベントを Discord / Slack / 任意の Webhook へ通知します。
 
-**[ドキュメント](https://Taikono-Himazin.github.io/poi-notice-webhook/)**
+**[ドキュメント](https://Taikono-Himazin.github.io/poi-plugin-notice-webhook/)**
 
 ## 特徴
 
@@ -38,7 +38,7 @@ cd aws/scripts
 ./deploy.sh --profile <AWS_PROFILE> --region ap-northeast-1
 ```
 
-詳細は[セットアップガイド](https://Taikono-Himazin.github.io/poi-notice-webhook/setup)を参照してください。
+詳細は[セットアップガイド](https://Taikono-Himazin.github.io/poi-plugin-notice-webhook/setup)を参照してください。
 
 ## ディレクトリ構成
 

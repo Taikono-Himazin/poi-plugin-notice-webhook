@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    poi-notice-webhook AWS デプロイスクリプト (PowerShell 版)
+    poi-plugin-notice-webhook AWS デプロイスクリプト (PowerShell 版)
 
 .DESCRIPTION
     CDK を使って AWS にデプロイします。--Profile と --Region は必須です。

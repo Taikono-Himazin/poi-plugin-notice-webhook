@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Taikono-Himazin/poi-notice-webhook.git"
+    "url": "git+https://github.com/Taikono-Himazin/poi-plugin-notice-webhook.git"
   },
   "keywords": [
     "kankore",
@@ -19,9 +19,9 @@
   "author": "Taikono-Himazin",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Taikono-Himazin/poi-notice-webhook/issues"
+    "url": "https://github.com/Taikono-Himazin/poi-plugin-notice-webhook/issues"
   },
-  "homepage": "https://github.com/Taikono-Himazin/poi-notice-webhook#readme",
+  "homepage": "https://github.com/Taikono-Himazin/poi-plugin-notice-webhook#readme",
   "dependencies": {
     "axios": "^1.0.0"
   },

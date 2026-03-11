@@ -1,4 +1,4 @@
-# poi-notice-webhook サービス利用手順書
+# poi-plugin-notice-webhook サービス利用手順書
 
 デプロイ後の AWS サービスを利用する手順です。
 デプロイ自体は [DEPLOY.md](DEPLOY.md) を参照してください。

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# poi-notice-webhook デプロイスクリプト
+# poi-plugin-notice-webhook デプロイスクリプト
 # 使い方:
 #   ./deploy.sh --profile <AWS_PROFILE> --region <AWS_REGION> [options]
 # =============================================================================

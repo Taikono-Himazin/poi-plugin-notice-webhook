@@ -138,7 +138,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# poi-notice-webhook: デプロイ用シークレット・生成ファイル
+# poi-plugin-notice-webhook: デプロイ用シークレット・生成ファイル
 aws/.poi-webhook-deploy.env
 aws/.poi-webhook-deploy.json
 aws/aws-outputs.json
