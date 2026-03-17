@@ -1,0 +1,12 @@
+title: 通知転送（poiプラグイン）
+description: poi 向け Webhook 通知プラグイン — Discord / Slack 対応、クラウド配信でpoiを閉じても通知
+theme: minima
+lang: ja
+
+header_pages:
+  - index.md
+  - usage.md
+  - api.md
+  - setup.md
+  - privacy.md
+  - terms.md
