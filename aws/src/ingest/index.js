@@ -1,14 +1,10 @@
 'use strict'
 
 const { DynamoDBClient }       = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb')
-const { SchedulerClient, CreateScheduleCommand } = require('@aws-sdk/client-scheduler')
+const { DynamoDBDocumentClient, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb')
 const { deliverNotification }  = require('../shared/deliver')
-const { getAccount, isPaidActive } = require('../shared/subscription')
-const crypto = require('crypto')
 
-const dynamo    = DynamoDBDocumentClient.from(new DynamoDBClient({}))
-const scheduler = new SchedulerClient({})
+const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}))
 
 const ok  = (body) => ({ statusCode: 200, headers: cors(), body: JSON.stringify(body) })
 const err = (code, msg) => ({ statusCode: code, headers: cors(), body: JSON.stringify({ error: msg }) })
@@ -27,14 +23,16 @@ exports.handler = async (event) => {
 
   const userId = tokenRes.Item.userId
 
-  const account = await getAccount(userId)
+  const accountRes = await dynamo.send(new GetCommand({
+    TableName: process.env.ACCOUNTS_TABLE,
+    Key: { userId },
+  }))
+  const account = accountRes.Item
   if (!account) return err(404, 'Account not found. Please sign up first.')
 
   if (!account.webhookType) {
     return err(400, 'Webhook config not set. Please configure via PUT /account/config.')
   }
-
-  const paid = isPaidActive(account)
 
   // accountsTable の webhook 設定を配信ターゲットとして構築
   const deliveryTarget = {
@@ -43,41 +41,28 @@ exports.handler = async (event) => {
     lineToken: account.webhookLineToken || '',
   }
 
-  const body         = JSON.parse(event.body || '{}')
-  const delayMinutes = paid ? (Number(body.deliverAfterMinutes) || 0) : 0
+  const body = JSON.parse(event.body || '{}')
 
-  if (delayMinutes <= 0) {
-    // 即時配信
-    await deliverNotification(deliveryTarget, body)
-  } else {
-    // 遅延配信: DynamoDB に保存 + EventBridge Scheduler 登録
-    const notificationId = crypto.randomUUID()
-    const deliverAt      = new Date(Date.now() + delayMinutes * 60 * 1000)
-
-    await dynamo.send(new PutCommand({
-      TableName: process.env.NOTIFICATIONS_TABLE,
-      Item: {
-        id:        notificationId,
-        userId,
-        tokenItem: deliveryTarget,
-        payload:   body,
-        ttl:       Math.floor(deliverAt.getTime() / 1000) + 86400,
+  // 通知統計をアトミックにインクリメント（エラーは無視して配信を優先）
+  const notifType  = body.type || 'other'
+  const month      = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+  try {
+    await dynamo.send(new UpdateCommand({
+      TableName: process.env.STATS_TABLE,
+      Key: { userId, month },
+      UpdateExpression: 'ADD #total :one, #typeKey :one',
+      ExpressionAttributeNames: {
+        '#total':   'total',
+        '#typeKey': `type_${notifType}`,
       },
+      ExpressionAttributeValues: { ':one': 1 },
     }))
-
-    await scheduler.send(new CreateScheduleCommand({
-      Name: `poi-notify-${notificationId}`,
-      ScheduleExpression: `at(${deliverAt.toISOString().replace(/\.\d{3}Z$/, '')})`,
-      ScheduleExpressionTimezone: 'UTC',
-      FlexibleTimeWindow: { Mode: 'OFF' },
-      Target: {
-        Arn:    process.env.DELIVER_FUNCTION_ARN,
-        RoleArn: process.env.SCHEDULER_ROLE_ARN,
-        Input:  JSON.stringify({ notificationId }),
-      },
-      ActionAfterCompletion: 'DELETE',
-    }))
+  } catch (e) {
+    console.error('[ingest] stats update failed', e)
   }
+
+  // 即時配信
+  await deliverNotification(deliveryTarget, body)
 
   return ok({ ok: true })
 }

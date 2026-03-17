@@ -16,7 +16,7 @@ noindex: true
 | 電話番号 | 請求があり次第、遅滞なく開示します |
 | メールアドレス | 開示請求はプラグインの [GitHub Issues](https://github.com/Taikono-Himazin/poi-plugin-notice-webhook/issues) にてお問い合わせください |
 | 販売URL | [https://github.com/Taikono-Himazin/poi-plugin-notice-webhook](https://github.com/Taikono-Himazin/poi-plugin-notice-webhook) |
-| 商品名 | 通知転送プラグイン クラウド配信（DENTANプラン） |
+| 商品名 | 通知転送プラグイン クラウド配信 |
 | 販売価格 | 各プランの価格はプラグイン設定画面内に表示 |
 | 販売価格以外の費用 | なし（通信料はお客様負担） |
 | 支払方法 | クレジットカード（PAY.JP経由） |

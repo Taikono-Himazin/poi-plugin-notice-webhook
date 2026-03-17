@@ -36,22 +36,21 @@ exports.handler = async (event) => {
     TableName: process.env.ACCOUNTS_TABLE,
     Key: { userId },
   }))
-  if (accountRes.Item?.plan !== 'paid' || accountRes.Item?.subscriptionStatus !== 'active') {
-    return err(403, 'Timer sync requires an active paid plan.')
-  }
-  if (!accountRes.Item?.webhookType) {
+
+  const body       = JSON.parse(event.body || '{}')
+  const timers     = Array.isArray(body.timers) ? body.timers : []
+  const enabled    = body.enabled ?? { expedition: true, repair: true, construction: true }
+  const mobileOnly = body.mobileOnly === true
+
+  if (!mobileOnly && !accountRes.Item?.webhookType) {
     return err(400, 'Webhook config not set. Please configure via PUT /account/config.')
   }
 
-  const deliveryTarget = {
+  const deliveryTarget = mobileOnly ? { type: 'none' } : {
     type:      accountRes.Item.webhookType,
     url:       accountRes.Item.webhookUrl || '',
     lineToken: accountRes.Item.webhookLineToken || '',
   }
-
-  const body    = JSON.parse(event.body || '{}')
-  const timers  = Array.isArray(body.timers) ? body.timers : []
-  const enabled = body.enabled ?? { expedition: true, repair: true, construction: true }
 
   // 既存タイマーを全削除（スケジュールキャンセル + DynamoDB 削除）
   const existingRes = await dynamo.send(new QueryCommand({
@@ -88,57 +87,56 @@ exports.handler = async (event) => {
     const completesAtMs = new Date(completesAt).getTime()
     if (isNaN(completesAtMs) || completesAtMs <= now) continue
 
-    const notificationId = crypto.randomUUID()
-    const scheduleName   = safeScheduleName(userId, type, slot)
-    const deliverAt      = new Date(completesAtMs - 60 * 1000)
-    const pk             = `${type}#${slot}`
-    const payload        = {
-      message: message || `${TYPE_TITLES[type] ?? 'poi 通知'}`,
-      type,
-      title: TYPE_TITLES[type] ?? 'poi 通知',
+    const pk      = `${type}#${slot}`
+    const msgText = message || `${TYPE_TITLES[type] ?? 'poi 通知'}`
+
+    if (deliveryTarget.type === 'none') {
+      // Webhook なし: タイマー状態のみ保存（モバイルアプリ用）
+      await dynamo.send(new PutCommand({
+        TableName: process.env.TIMERS_TABLE,
+        Item: {
+          userId, pk, type, slot, completesAt,
+          message: msgText,
+          ttl: Math.floor(completesAtMs / 1000) + 86400,
+        },
+      }))
+    } else {
+      const notificationId = crypto.randomUUID()
+      const scheduleName   = safeScheduleName(userId, type, slot)
+      const deliverAt      = new Date(completesAtMs - 60 * 1000)
+      const payload        = { message: msgText, type, title: TYPE_TITLES[type] ?? 'poi 通知' }
+
+      await dynamo.send(new PutCommand({
+        TableName: process.env.NOTIFICATIONS_TABLE,
+        Item: {
+          id: notificationId, tokenItem: deliveryTarget, payload,
+          ttl: Math.floor(completesAtMs / 1000) + 86400,
+        },
+      }))
+
+      await dynamo.send(new PutCommand({
+        TableName: process.env.TIMERS_TABLE,
+        Item: {
+          userId, pk, type, slot, completesAt,
+          message: payload.message, scheduleName, notificationId,
+          ttl: Math.floor(completesAtMs / 1000) + 86400,
+        },
+      }))
+
+      const scheduleExpr = deliverAt.toISOString().replace(/\.\d{3}Z$/, '')
+      await scheduler.send(new CreateScheduleCommand({
+        Name: scheduleName,
+        ScheduleExpression: `at(${scheduleExpr})`,
+        ScheduleExpressionTimezone: 'UTC',
+        FlexibleTimeWindow: { Mode: 'OFF' },
+        Target: {
+          Arn:    process.env.DELIVER_FUNCTION_ARN,
+          RoleArn: process.env.SCHEDULER_ROLE_ARN,
+          Input:  JSON.stringify({ notificationId }),
+        },
+        ActionAfterCompletion: 'DELETE',
+      }))
     }
-
-    // notifications テーブルに保存（deliver Lambda が参照する）
-    await dynamo.send(new PutCommand({
-      TableName: process.env.NOTIFICATIONS_TABLE,
-      Item: {
-        id:        notificationId,
-        tokenItem: deliveryTarget,
-        payload,
-        ttl:       Math.floor(completesAtMs / 1000) + 86400,
-      },
-    }))
-
-    // timers テーブルに状態を保存
-    await dynamo.send(new PutCommand({
-      TableName: process.env.TIMERS_TABLE,
-      Item: {
-        userId,
-        pk,
-        type,
-        slot,
-        completesAt,
-        message:        payload.message,
-        scheduleName,
-        notificationId,
-        ttl: Math.floor(completesAtMs / 1000) + 86400,
-      },
-    }))
-
-    // EventBridge Scheduler を作成
-    const scheduleExpr = deliverAt.toISOString().replace(/\.\d{3}Z$/, '')
-    await scheduler.send(new CreateScheduleCommand({
-      Name:                       scheduleName,
-      ScheduleExpression:         `at(${scheduleExpr})`,
-      ScheduleExpressionTimezone: 'UTC',
-      FlexibleTimeWindow:         { Mode: 'OFF' },
-      Target: {
-        Arn:     process.env.DELIVER_FUNCTION_ARN,
-        RoleArn: process.env.SCHEDULER_ROLE_ARN,
-        Input:   JSON.stringify({ notificationId }),
-      },
-      ActionAfterCompletion: 'DELETE',
-    }))
 
     scheduled++
   }

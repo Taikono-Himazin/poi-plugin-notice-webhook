@@ -1,0 +1,4 @@
+node_modules/
+.expo/
+# deploy.ps1 によって上書きされる実データは git 管理しない
+aws-outputs.json

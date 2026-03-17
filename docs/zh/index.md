@@ -13,20 +13,8 @@ nav_order: 1
 ## 特点
 
 - **直接配送模式** — 从运行 poi 的机器直接发送 Webhook（无需设置）
-- **云端配送模式（DENTAN Plan）** — 通过云端发送通知。即使关闭 poi 也能收到通知
+- **云端配送模式** — 通过云端发送通知。即使关闭 poi 也能收到通知
 - 支持 Discord 和 Slack
-- 付费计划：在完成前 N 分钟发送通知（延迟通知）
-
-## 套餐
-
-| | 免费套餐 | 付费套餐 |
-|---|---|---|
-| 直接配送 | OK | OK |
-| 云端配送 | 每月最多 30 条 | 无限 |
-| 延迟通知（提前 N 分钟） | — | OK |
-| 价格 | 免费 | 从 ¥100/月起 |
-
-付费套餐为 1 / 6 / 12 个月的一次性付款。在有效期内再次购买可从剩余时间延长。
 
 ## 快速开始
 
@@ -41,7 +29,7 @@ nav_order: 1
 - **Discord** — 频道设置 → 集成 → Webhooks → 新建 Webhook（[官方帮助](https://support.discord.com/hc/articles/228383668)）
 - **Slack** — 创建 [Slack App](https://api.slack.com/apps) 并启用 Incoming Webhooks（[官方帮助](https://api.slack.com/messaging/webhooks)）
 
-### 云端配送模式（DENTAN Plan）
+### 云端配送模式
 
 1. 在 poi 中安装插件
 2. 在设置画面选择「经由云端」

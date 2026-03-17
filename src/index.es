@@ -88,9 +88,15 @@ const startOAuthFlow = (cognitoDomain, region, clientId, onSuccess, onError) => 
   })
 
   _oauthServer.listen(OAUTH_PORT, '127.0.0.1', () => {
+    // poi の表示言語を Cognito lang パラメータに変換
+    // window.language は 'ja-JP' / 'en-US' / 'zh-CN' / 'zh-TW' などの形式
+    const poiLang = window.language || 'ja-JP'
+    const cognitoLang = poiLang.startsWith('zh') ? poiLang : poiLang.split('-')[0]
+
     const params = new URLSearchParams({
       client_id: clientId, response_type: 'code',
       scope: 'openid email profile', redirect_uri: REDIRECT_URI,
+      lang: cognitoLang, prompt: 'login',
     })
     window.open(
       `https://${cognitoDomain}.auth.${region}.amazoncognito.com/oauth2/authorize?${params}`,
@@ -132,11 +138,22 @@ function extractTimersFromBody(path, body) {
     if (!mission || mission[0] !== 1 || !(mission[2] > 0)) continue
     const completesAt = mission[2] // Unix ms
     if (completesAt <= now) continue
+
+    // 遠征名をマスターデータから取得 (api_mission[1] が遠征 ID)
+    let missionName = ''
+    try {
+      const missionId = mission[1]
+      const missions = window.getStore?.('const.$missions')
+      missionName = missions?.[missionId]?.api_name || ''
+    } catch (_) { }
+
     timers.push({
       type: 'expedition',
       slot: fleetId,
       completesAt: new Date(completesAt).toISOString(),
-      message: `第${fleetId}艦隊の遠征が完了します`,
+      message: missionName
+        ? `第${fleetId}艦隊の遠征が完了します（${missionName}）`
+        : `第${fleetId}艦隊の遠征が完了します`,
     })
   }
 
@@ -148,11 +165,25 @@ function extractTimersFromBody(path, body) {
     if (!(dock.api_ship_id > 0) || !(dock.api_complete_time > 0)) continue
     const completesAt = dock.api_complete_time
     if (completesAt <= now) continue
+
+    // 艦名をストアから取得（info.ships は api_id でインデックス済み）
+    let shipName = ''
+    try {
+      const ships = window.getStore?.('info.ships')
+      const shipInstance = ships?.[dock.api_ship_id]
+      if (shipInstance) {
+        const masterShips = window.getStore?.('const.$ships')
+        shipName = masterShips?.[shipInstance.api_ship_id]?.api_name || ''
+      }
+    } catch (_) { }
+
     timers.push({
       type: 'repair',
       slot: dock.api_id,
       completesAt: new Date(completesAt).toISOString(),
-      message: `入渠が完了します（ドック${dock.api_id}）`,
+      message: shipName
+        ? `${shipName}の入渠が完了します（ドック${dock.api_id}）`
+        : `入渠が完了します（ドック${dock.api_id}）`,
     })
   }
 
@@ -165,11 +196,21 @@ function extractTimersFromBody(path, body) {
     if (!(dock.api_complete_time > 0)) continue
     const completesAt = dock.api_complete_time
     if (completesAt <= now) continue
+
+    // 建造艦名をマスターデータから取得（kdock.api_ship_id はマスター艦種 ID）
+    let shipName = ''
+    try {
+      const masterShips = window.getStore?.('const.$ships')
+      shipName = masterShips?.[dock.api_ship_id]?.api_name || ''
+    } catch (_) { }
+
     timers.push({
       type: 'construction',
       slot: dock.api_id,
       completesAt: new Date(completesAt).toISOString(),
-      message: `建造が完了します（ドック${dock.api_id}）`,
+      message: shipName
+        ? `${shipName}の建造が完了します（ドック${dock.api_id}）`
+        : `建造が完了します（ドック${dock.api_id}）`,
     })
   }
 
@@ -445,159 +486,6 @@ const RadarIcon = ({ size = 14, style }) => (
   />
 )
 
-// プラン選択肢
-const PLANS = [
-  { key: '1m', labelKey: 'billingPlan1m' },
-  { key: '6m', labelKey: 'billingPlan6m' },
-  { key: '12m', labelKey: 'billingPlan12m' },
-]
-
-// ---- AWS 課金セクション ----
-const AwsBillingSection = ({ apiUrl, jwt, status, onStatusChange }) => {
-  const [selectedPlan, setSelectedPlan] = useState('1m')
-  const [checking, setChecking] = useState(false)
-  const [polling, setPolling] = useState(false)
-  const [claiming, setClaiming] = useState(false)
-  const [statusMsg, setStatusMsg] = useState('')
-  const [isError, setIsError] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true)
-    try {
-      const res = await axios.get(`${apiUrl}/billing/status`, {
-        headers: { Authorization: `Bearer ${jwt}` },
-      })
-      onStatusChange(res.data)
-    } catch (_) { } finally {
-      setRefreshing(false)
-    }
-  }, [apiUrl, jwt, onStatusChange])
-
-  const isPaid = status?.plan === 'paid' && status?.subscriptionStatus === 'active'
-    && (status?.paidUntil == null || status.paidUntil > Date.now())
-
-  // 有効期限の表示文字列
-  const expiryLabel = status?.paidUntil
-    ? t('billingExpiry', { date: new Date(status.paidUntil).toLocaleDateString() })
-    : null
-
-  // 支払い完了をポーリングで検知
-  useEffect(() => {
-    if (!polling) return
-    let attempt = 0
-    const timer = setInterval(async () => {
-      attempt++
-      if (attempt > 120) { clearInterval(timer); setPolling(false); return } // 6分でタイムアウト
-      try {
-        const res = await axios.get(`${apiUrl}/billing/status`, {
-          headers: { Authorization: `Bearer ${jwt}` },
-        })
-        if (res.data.plan === 'paid' && res.data.paidUntil > Date.now()) {
-          clearInterval(timer)
-          setPolling(false)
-          onStatusChange(res.data)
-          setStatusMsg(t('billingSubscribed')); setIsError(false)
-        }
-      } catch (_) { }
-    }, 3000)
-    return () => clearInterval(timer)
-  }, [polling, apiUrl, jwt])
-
-  const claimTrial = async () => {
-    setClaiming(true); setStatusMsg('')
-    try {
-      const res = await axios.post(`${apiUrl}/billing/trial`, {}, {
-        headers: { Authorization: `Bearer ${jwt}` },
-      })
-      onStatusChange(res.data)
-      setStatusMsg(t('billingTrialClaimed')); setIsError(false)
-    } catch (e) {
-      const msg = e.response?.status === 409 ? t('billingTrialUsed') : e.message
-      setStatusMsg(msg); setIsError(true)
-    } finally {
-      setClaiming(false)
-    }
-  }
-
-  const openSubscribeForm = async () => {
-    setChecking(true); setStatusMsg('')
-    try {
-      const res = await axios.get(`${apiUrl}/billing/checkout?plan=${selectedPlan}`, {
-        headers: { Authorization: `Bearer ${jwt}` },
-      })
-      window.open(res.data.checkoutUrl, 'payjp-checkout', 'width=520,height=700,menubar=no,toolbar=no')
-      setPolling(true)
-      setStatusMsg(t('billingWaiting')); setIsError(false)
-    } catch (e) {
-      setStatusMsg(e.message); setIsError(true)
-    } finally {
-      setChecking(false)
-    }
-  }
-
-  if (!status) return <p style={{ fontSize: '12px', color: '#888' }}>{t('awsTokensLoading')}</p>
-
-  return (
-    <div style={{ border: '1px solid #555', borderRadius: 4, padding: 10, marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <strong style={{ fontSize: '12px' }}>{t('billingSection')}</strong>
-        {isPaid
-          ? <span style={{ fontSize: '12px', color: '#5cb85c' }}><RadarIcon size={12} style={{ marginRight: 4 }} />{t('billingActivePlan')}</span>
-          : <span style={{ fontSize: '12px', color: '#f0ad4e' }}>{t('billingFreePlan')}</span>
-        }
-        {isPaid && expiryLabel && (
-          <span style={{ fontSize: '11px', color: '#aaa' }}>{expiryLabel}</span>
-        )}
-        <Button bsSize="xs" onClick={handleRefresh} disabled={refreshing}
-          style={{ marginLeft: 'auto', fontSize: '11px', padding: '1px 6px' }}>
-          {refreshing ? '…' : '↻'}
-        </Button>
-      </div>
-      {!isPaid && !polling && !status.trialUsed && (
-        <div style={{ marginBottom: 8 }}>
-          <p style={{ fontSize: '12px', color: '#aaa', marginBottom: 6 }}>{t('billingAppeal')}</p>
-          <Button bsSize="xs" bsStyle="success" onClick={claimTrial} disabled={claiming}>
-            {claiming ? t('billingTrialClaiming') : t('billingTrial')}
-          </Button>
-        </div>
-      )}
-      {!polling ? (
-        <>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-            {PLANS.map(({ key, labelKey }) => (
-              <Button key={key} bsSize="xs"
-                bsStyle={selectedPlan === key ? 'primary' : 'default'}
-                onClick={() => setSelectedPlan(key)}
-                style={selectedPlan === key
-                  ? { background: '#4a90d9', borderColor: '#4a90d9', color: '#fff', fontWeight: 'bold' }
-                  : { background: '#3a3a3a', borderColor: '#666', color: '#ccc' }
-                }>
-                <RadarIcon style={{ marginRight: 4 }} /> {t(labelKey)}
-              </Button>
-            ))}
-          </div>
-          <Button bsSize="xs" bsStyle="warning" onClick={openSubscribeForm} disabled={checking}>
-            {checking ? t('awsTokensLoading') : t('billingSubscribe')}
-          </Button>
-        </>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '12px', color: '#f0ad4e' }}>{t('billingWaiting')}</span>
-          <Button bsSize="xs" onClick={() => { setPolling(false); setStatusMsg('') }}>
-            {t('billingCancelWait')}
-          </Button>
-        </div>
-      )}
-      {statusMsg && (
-        <p style={{ fontSize: '12px', color: isError ? '#d9534f' : '#5cb85c', marginTop: 4, marginBottom: 0 }}>
-          {statusMsg}
-        </p>
-      )}
-    </div>
-  )
-}
-
 // ---- 設定 UI ----
 const WEBHOOK_TYPES = ['discord', 'slack']
 
@@ -700,6 +588,10 @@ const AwsDeliveryConfig = forwardRef(({ apiUrl, jwt }, ref) => {
       </div>
       <FormGroup style={{ marginTop: 6 }}>
         <div>
+          <Radio name="awsDeliveryType" value="none" checked={type === 'none'}
+            onChange={(e) => setType(e.target.value)} inline style={{ marginRight: 12 }}>
+            なし
+          </Radio>
           {WEBHOOK_TYPES.map((wt) => (
             <Radio key={wt} name="awsDeliveryType" value={wt} checked={type === wt}
               onChange={(e) => setType(e.target.value)} inline style={{ marginRight: 12 }}>
@@ -707,21 +599,29 @@ const AwsDeliveryConfig = forwardRef(({ apiUrl, jwt }, ref) => {
             </Radio>
           ))}
         </div>
-      </FormGroup>
+        <p style={{ fontSize: '12px', color: '#aaa' }}>
+          「なし」を選択してもスマホアプリには通知が届きます。{' '}
+          <a href="#" target="_blank" rel="noreferrer" style={{ color: '#5865f2' }}>
+            スマホアプリはこちら
+          </a>
+        </p>
 
-      <FormGroup>
-        <ControlLabel>{t('urlLabel')}</ControlLabel>
-        <FormControl type="url" value={url} onChange={(e) => setUrl(e.target.value)}
-          placeholder={URL_PLACEHOLDERS[type] || 'https://example.com/webhook'} />
-        {URL_HINTS[type] && (
-          <HelpBlock>
-            {t(URL_HINTS[type])}
-            {OFFICIAL_HELP_URLS[type] && (
-              <> — <a href={OFFICIAL_HELP_URLS[type]} target="_blank" rel="noreferrer">{t('officialHelp')}</a></>
-            )}
-          </HelpBlock>
-        )}
       </FormGroup>
+      {type !== 'none' && (
+        <FormGroup>
+          <ControlLabel>{t('urlLabel')}</ControlLabel>
+          <FormControl type="url" value={url} onChange={(e) => setUrl(e.target.value)}
+            placeholder={URL_PLACEHOLDERS[type] || 'https://example.com/webhook'} />
+          {URL_HINTS[type] && (
+            <HelpBlock>
+              {t(URL_HINTS[type])}
+              {OFFICIAL_HELP_URLS[type] && (
+                <> — <a href={OFFICIAL_HELP_URLS[type]} target="_blank" rel="noreferrer">{t('officialHelp')}</a></>
+              )}
+            </HelpBlock>
+          )}
+        </FormGroup>
+      )}
 
       {statusMsg && (
         <p style={{ fontSize: '12px', color: isError ? '#d9534f' : '#5cb85c', marginBottom: 0 }}>
@@ -750,12 +650,10 @@ export const reactClass = () => {
   const [testing, setTesting] = useState(false)
   const [configOpen, setConfigOpen] = useState(true)
   const deliveryConfigRef = useRef(null)
-  const [awsBillingStatus, setAwsBillingStatus] = useState(null)
   // タイマー同期
   const [timerExpedition, setTimerExpedition] = useState(() => getConfig('timerExpedition', true))
   const [timerRepair, setTimerRepair] = useState(() => getConfig('timerRepair', true))
   const [timerConstruction, setTimerConstruction] = useState(() => getConfig('timerConstruction', true))
-
   // 起動時: aws-outputs.json から API URL・クライアント ID・Cognito ドメインを読み込む
   // ファイルが存在する場合は常に最新値で上書きする（再デプロイ後に自動反映）
   useEffect(() => {
@@ -792,16 +690,6 @@ export const reactClass = () => {
           console.error(`[${PLUGIN_KEY}] トークン自動設定エラー:`, e.message)
         }
       })()
-  }, [awsJwt, awsApiUrl])
-
-  // ログイン後: 課金ステータスを取得
-  useEffect(() => {
-    if (!awsJwt || !awsApiUrl) { setAwsBillingStatus(null); return }
-    axios.get(`${awsApiUrl}/billing/status`, {
-      headers: { Authorization: `Bearer ${awsJwt}` },
-    })
-      .then((res) => setAwsBillingStatus(res.data))
-      .catch(() => setAwsBillingStatus({ plan: 'free', subscriptionStatus: 'inactive' }))
   }, [awsJwt, awsApiUrl])
 
   const isAws = deliveryMode === 'aws'
@@ -854,13 +742,13 @@ export const reactClass = () => {
 
   const handleLogout = useCallback(() => {
     // ログアウト前にサーバー側の通知予定をキャンセル
-    const currentJwt    = getConfig('awsJwt', '')
+    const currentJwt = getConfig('awsJwt', '')
     const currentApiUrl = getConfig('awsApiUrl', '')
     if (currentJwt && currentApiUrl) {
       axios.put(`${currentApiUrl}/timers`,
         { timers: [], enabled: { expedition: false, repair: false, construction: false } },
         { headers: { Authorization: `Bearer ${currentJwt}` } },
-      ).catch(() => {})
+      ).catch(() => { })
     }
     setAwsJwt(null)
     setConfig('awsJwt', '')
@@ -946,7 +834,7 @@ export const reactClass = () => {
             userSelect: 'none',
           }}
         >
-          <strong style={{ fontSize: '13px' }}>{t('pluginTitle')}</strong>
+          <strong style={{ fontSize: '13px' }}>{t('pluginSetting')}</strong>
           <span style={{ fontSize: '11px', color: '#aaa' }}>{configOpen ? '▲' : '▼'}</span>
         </div>
 
@@ -964,16 +852,6 @@ export const reactClass = () => {
                 <Radio name="deliveryMode" value="aws" checked={isAws}
                   onChange={handleDeliveryModeChange} inline>
                   {t('deliveryModeAws')}
-                  <span style={{
-                    marginLeft: 6,
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    color: '#fff',
-                    background: 'linear-gradient(135deg, #f0ad4e, #e67e22)',
-                    borderRadius: 3,
-                    padding: '1px 5px',
-                    verticalAlign: 'middle',
-                  }}>DENTAN</span>
                 </Radio>
               </div>
               {isAws && (
@@ -1005,27 +883,14 @@ export const reactClass = () => {
               </FormGroup>
             )}
 
-            {/* 2b. プラン（クラウドモード・ログイン済み） */}
-            {isAws && awsJwt && awsApiUrl && (
-              <FormGroup>
-                <ControlLabel>{t('billingSection')}</ControlLabel>
-                <div style={{ marginTop: 4 }}>
-                  <AwsBillingSection
-                    apiUrl={awsApiUrl}
-                    jwt={awsJwt}
-                    status={awsBillingStatus}
-                    onStatusChange={setAwsBillingStatus}
-                  />
-                </div>
-              </FormGroup>
-            )}
-
             {/* 3. 配信先設定 */}
             {isAws ? (
               awsJwt && awsApiUrl && (
-                <FormGroup>
-                  <AwsDeliveryConfig ref={deliveryConfigRef} apiUrl={awsApiUrl} jwt={awsJwt} />
-                </FormGroup>
+                <>
+                  <FormGroup>
+                    <AwsDeliveryConfig ref={deliveryConfigRef} apiUrl={awsApiUrl} jwt={awsJwt} />
+                  </FormGroup>
+                </>
               )
             ) : (
               <>
@@ -1060,7 +925,7 @@ export const reactClass = () => {
               </>
             )}
 
-            {/* 4. テスト送信 / 保存 */}
+            {/* 5. テスト送信 / 保存 */}
             <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
               {!isAws ? (
                 <Button bsStyle="primary" onClick={handleSave} disabled={!canSave}>
@@ -1085,6 +950,17 @@ export const reactClass = () => {
           </div>
         )}
       </div>
+
+      {/* クラウド支援のお願い（設定パネル外） */}
+      {isAws && awsJwt && (
+        <p style={{ fontSize: '11px', color: '#888', marginTop: 8, marginBottom: 0 }}>
+          {t('supportNote')}{' '}
+          <a href="https://github.com/sponsors/Taikono-Himazin" target="_blank" rel="noreferrer"
+            style={{ color: '#ea4aaa' }}>
+            {t('supportLink')}
+          </a>
+        </p>
+      )}
 
     </div>
   )

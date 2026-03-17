@@ -15,31 +15,6 @@ export class PoiWebhookStack extends Stack {
     // ----------------------------------------------------------------
     // デプロイ時パラメータ
     // ----------------------------------------------------------------
-    const payjpSecretKeyParam = new CfnParameter(this, 'PayjpSecretKey', {
-      type: 'String', noEcho: true,
-      description: 'PAY.JP シークレットキー (sk_live_... or sk_test_...)',
-    })
-    const payjpPublicKeyParam = new CfnParameter(this, 'PayjpPublicKey', {
-      type: 'String',
-      description: 'PAY.JP 公開キー (pk_live_... or pk_test_...)',
-    })
-    const payjpWebhookSecretParam = new CfnParameter(this, 'PayjpWebhookSecret', {
-      type: 'String', noEcho: true,
-      description: 'PAY.JP Webhook 署名シークレット',
-    })
-    const payjpPrice1mParam = new CfnParameter(this, 'PayjpPrice1m', {
-      type: 'String',
-      description: 'PAY.JP v2 価格 ID — 1ヶ月プラン (prc_...)',
-    })
-    const payjpPrice6mParam = new CfnParameter(this, 'PayjpPrice6m', {
-      type: 'String',
-      description: 'PAY.JP v2 価格 ID — 6ヶ月プラン (prc_...)',
-    })
-    const payjpPrice12mParam = new CfnParameter(this, 'PayjpPrice12m', {
-      type: 'String',
-      description: 'PAY.JP v2 価格 ID — 12ヶ月プラン (prc_...)',
-    })
-
     const googleClientIdParam = new CfnParameter(this, 'GoogleClientId', {
       type: 'String', default: '',
       description: 'Google OAuth 2.0 クライアント ID（空白でスキップ）',
@@ -105,8 +80,8 @@ export class PoiWebhookStack extends Stack {
       allowedOAuthFlows: ['code'],
       allowedOAuthScopes: ['openid', 'email', 'profile'],
       allowedOAuthFlowsUserPoolClient: true,
-      callbackUrLs: ['http://localhost:17890/callback'],
-      logoutUrLs: ['http://localhost:17890/logout'],
+      callbackUrLs: ['http://localhost:17890/callback', 'poi-notice://auth'],
+      logoutUrLs: ['http://localhost:17890/logout', 'poi-notice://logout'],
     })
     userPoolClientCfn.addPropertyOverride(
       'SupportedIdentityProviders',
@@ -159,6 +134,16 @@ export class PoiWebhookStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     })
 
+    // 通知統計テーブル（userId: PK, month: SK = "YYYY-MM"）
+    // 各月の通知回数を type 別にカウント
+    const statsTable = new dynamodb.Table(this, 'StatsTable', {
+      tableName: 'poi-webhook-stats',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey:      { name: 'month',  type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.RETAIN,
+    })
+
     // ----------------------------------------------------------------
     // Lambda 共通設定
     // ----------------------------------------------------------------
@@ -169,11 +154,9 @@ export class PoiWebhookStack extends Stack {
       TOKENS_TABLE:         tokensTable.tableName,
       NOTIFICATIONS_TABLE:  notificationsTable.tableName,
       TIMERS_TABLE:         timersTable.tableName,
+      STATS_TABLE:          statsTable.tableName,
       USER_POOL_ID:         userPool.userPoolId,
       USER_POOL_CLIENT_ID:  userPoolClientCfn.ref,
-      PAYJP_SECRET_KEY:     payjpSecretKeyParam.valueAsString,
-      PAYJP_PUBLIC_KEY:     payjpPublicKeyParam.valueAsString,
-      PAYJP_WEBHOOK_SECRET: payjpWebhookSecretParam.valueAsString,
     }
 
     const fn = (id: string, entry: string, extraEnv: Record<string, string> = {}) =>
@@ -218,6 +201,7 @@ export class PoiWebhookStack extends Stack {
     tokensTable.grantReadData(ingestFn)
     accountsTable.grantReadWriteData(ingestFn)
     notificationsTable.grantReadWriteData(ingestFn)
+    statsTable.grantReadWriteData(ingestFn)
     ingestFn.addToRolePolicy(new iam.PolicyStatement({
       actions: ['scheduler:CreateSchedule'],
       resources: ['*'],
@@ -242,22 +226,6 @@ export class PoiWebhookStack extends Stack {
     const tokenDeleteFn = fn('TokenDeleteFunction', 'tokens/delete.js')
     tokensTable.grantReadWriteData(tokenDeleteFn)
 
-    // 請求
-    const checkoutFn = fn('CheckoutFunction', 'billing/checkout.js', {
-      PAYJP_PRICE_1M:  payjpPrice1mParam.valueAsString,
-      PAYJP_PRICE_6M:  payjpPrice6mParam.valueAsString,
-      PAYJP_PRICE_12M: payjpPrice12mParam.valueAsString,
-    })
-    accountsTable.grantReadWriteData(checkoutFn)
-
-    const payCompleteFn = fn('PayCompleteFunction', 'billing/pay-complete.js')
-
-    const billingStatusFn = fn('BillingStatusFunction', 'billing/status.js')
-    accountsTable.grantReadData(billingStatusFn)
-
-    const trialFn = fn('TrialFunction', 'billing/trial.js')
-    accountsTable.grantReadWriteData(trialFn)
-
     // タイマー同期（Cognito 認証）
     const timerSyncFn = fn('TimerSyncFunction', 'timers/sync.js', {
       DELIVER_FUNCTION_ARN: deliverFn.functionArn,
@@ -275,37 +243,9 @@ export class PoiWebhookStack extends Stack {
       resources: [schedulerRole.roleArn],
     }))
 
-    // 有料プラン期限切れ通知
-    const expiryNotifyFn = fn('ExpiryNotifyFunction', 'billing/expiry-notify.js')
-    accountsTable.grantReadData(expiryNotifyFn)
-
-    // 期限切れ通知用 Scheduler ロール
-    const expirySchedulerRole = new iam.Role(this, 'ExpirySchedulerRole', {
-      assumedBy: new iam.ServicePrincipal('scheduler.amazonaws.com'),
-      inlinePolicies: {
-        InvokeExpiryNotify: new iam.PolicyDocument({
-          statements: [new iam.PolicyStatement({
-            actions: ['lambda:InvokeFunction'],
-            resources: [expiryNotifyFn.functionArn],
-          })],
-        }),
-      },
-    })
-
-    // PAY.JP Webhook
-    const payjpWebhookFn = fn('PayjpWebhookFunction', 'payjp/webhook.js', {
-      EXPIRY_NOTIFY_FUNCTION_ARN: expiryNotifyFn.functionArn,
-      EXPIRY_SCHEDULER_ROLE_ARN:  expirySchedulerRole.roleArn,
-    })
-    accountsTable.grantReadWriteData(payjpWebhookFn)
-    payjpWebhookFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['scheduler:CreateSchedule', 'scheduler:DeleteSchedule'],
-      resources: ['*'],
-    }))
-    payjpWebhookFn.addToRolePolicy(new iam.PolicyStatement({
-      actions: ['iam:PassRole'],
-      resources: [expirySchedulerRole.roleArn],
-    }))
+    // タイマー取得（Cognito 認証、モバイルアプリ用）
+    const timerGetFn = fn('TimerGetFunction', 'timers/get.js')
+    timersTable.grantReadData(timerGetFn)
 
     // ----------------------------------------------------------------
     // API Gateway
@@ -335,10 +275,10 @@ export class PoiWebhookStack extends Stack {
       .addResource('{token}')
       .addMethod('POST', lam(ingestFn))
 
-    // タイマー同期（Cognito 認証）
-    api.root
-      .addResource('timers')
-      .addMethod('PUT', lam(timerSyncFn), withAuth)
+    // タイマー同期・取得（Cognito 認証）
+    const timersRes = api.root.addResource('timers')
+    timersRes.addMethod('PUT', lam(timerSyncFn), withAuth)
+    timersRes.addMethod('GET', lam(timerGetFn), withAuth)
 
     // アカウント設定（Cognito 認証）
     const accountConfigRes = api.root
@@ -353,25 +293,6 @@ export class PoiWebhookStack extends Stack {
     tokensRes.addMethod('GET',  lam(tokenListFn),   withAuth)
     tokensRes.addResource('{token}').addMethod('DELETE', lam(tokenDeleteFn), withAuth)
 
-    // 請求（要認証）
-    const billingRes = api.root.addResource('billing')
-    billingRes.addResource('checkout').addMethod('GET',  lam(checkoutFn),      withAuth)
-    billingRes.addResource('status').addMethod('GET',    lam(billingStatusFn), withAuth)
-    billingRes.addResource('trial').addMethod('POST',          lam(trialFn),         withAuth)
-    billingRes.addResource('pay-complete').addMethod('GET',    lam(payCompleteFn))
-
-    // checkout に API_URL を設定（api.restApiId はステージ依存なし → 循環依存を回避）
-    checkoutFn.addEnvironment(
-      'API_URL',
-      `https://${api.restApiId}.execute-api.${this.region}.amazonaws.com/v1/`,
-    )
-
-    // PAY.JP Webhook（認証不要、署名検証）
-    api.root
-      .addResource('payjp')
-      .addResource('webhook')
-      .addMethod('POST', lam(payjpWebhookFn))
-
     // ----------------------------------------------------------------
     // Outputs
     // ----------------------------------------------------------------
@@ -380,10 +301,5 @@ export class PoiWebhookStack extends Stack {
     new CfnOutput(this, 'UserPoolId',       { value: userPool.userPoolId })
     new CfnOutput(this, 'UserPoolClientId', { value: userPoolClientCfn.ref })
     new CfnOutput(this, 'CognitoDomain',    { value: userPoolDomain.domainName })
-    // セットアップ時の参照用
-    new CfnOutput(this, 'PayjpWebhookUrl',  {
-      value: `${api.url}payjp/webhook`,
-      description: 'PAY.JP ダッシュボードに登録する Webhook URL',
-    })
   }
 }

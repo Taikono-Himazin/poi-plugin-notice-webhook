@@ -13,20 +13,8 @@ A Webhook notification plugin for [poi](https://github.com/poooi/poi). Sends Dis
 ## Features
 
 - **Direct mode** — Send Webhooks directly from the machine running poi (no setup required)
-- **Cloud mode (DENTAN Plan)** — Cloud-based notifications. Delivered even when poi is closed
+- **Cloud mode** — Cloud-based notifications. Delivered even when poi is closed
 - Supports Discord and Slack
-- Paid plan: notify N minutes before completion (delayed notifications)
-
-## Plans
-
-| | Free | Paid |
-|---|---|---|
-| Direct delivery | OK | OK |
-| Cloud delivery | Up to 30/month | Unlimited |
-| Delayed notifications (N min before) | — | OK |
-| Price | Free | From ¥100/month |
-
-Paid plans are one-time payments for 1 / 6 / 12 months. Purchasing while a plan is still active extends the remaining period.
 
 ## Quick Start
 
@@ -41,7 +29,7 @@ Paid plans are one-time payments for 1 / 6 / 12 months. Purchasing while a plan 
 - **Discord** — Channel Settings → Integrations → Webhooks → New Webhook ([Official Help](https://support.discord.com/hc/articles/228383668))
 - **Slack** — Create a [Slack App](https://api.slack.com/apps) and enable Incoming Webhooks ([Official Help](https://api.slack.com/messaging/webhooks))
 
-### Cloud Mode (DENTAN Plan)
+### Cloud Mode
 
 1. Install the plugin in poi
 2. Select "Via Cloud" in the settings

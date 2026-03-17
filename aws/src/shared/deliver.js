@@ -73,6 +73,8 @@ function post(url, body, headers = {}) {
 
 // ---- 配信 ----
 async function deliverNotification(user, payload) {
+  if (!user || user.type === 'none') return
+
   const msg     = payload.message || ''
   const options = { type: payload.type, title: payload.title }
 

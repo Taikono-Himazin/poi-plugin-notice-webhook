@@ -49,6 +49,54 @@ function Read-Secret {
     )
 }
 
+function ConvertTo-Dpapi {
+    param([string]$PlainText)
+    if ([string]::IsNullOrEmpty($PlainText)) { return "" }
+    $secure = ConvertTo-SecureString $PlainText -AsPlainText -Force
+    return ConvertFrom-SecureString $secure   # DPAPI 暗号化 (ユーザー鍵)
+}
+
+function ConvertFrom-Dpapi {
+    param([string]$Encrypted)
+    if ([string]::IsNullOrEmpty($Encrypted)) { return "" }
+    $secure = ConvertTo-SecureString $Encrypted
+    return [Runtime.InteropServices.Marshal]::PtrToStringAuto(
+        [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
+}
+
+function Get-Value {
+    param([string]$EnvVar, [string]$Prompt, [string]$Prefix,
+          [bool]$Secret = $true, [bool]$Required = $true)
+    # 優先順位: 環境変数 > 保存済み > 対話入力
+    $val = [System.Environment]::GetEnvironmentVariable($EnvVar)
+    if ([string]::IsNullOrWhiteSpace($val) -and $saved.ContainsKey($EnvVar)) {
+        $val = ConvertFrom-Dpapi $saved[$EnvVar]
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($val)) {
+        # 保存済みあり: Enter でスキップ、入力すれば上書き
+        $hint = if ($Secret) { "$($val.Substring(0, [Math]::Min(4,$val.Length)))****" } else { $val }
+        if ($Secret) {
+            $new = Read-Secret -Prompt "$Prompt [$hint] (Enter でそのまま)"
+        } else {
+            $new = Read-Host  -Prompt "$Prompt [$hint] (Enter でそのまま)"
+        }
+        if (-not [string]::IsNullOrWhiteSpace($new)) { $val = $new }
+    } else {
+        # 未保存: 必ず入力
+        if ($Secret) { $val = Read-Secret -Prompt $Prompt }
+        else          { $val = Read-Host  -Prompt $Prompt }
+        if ([string]::IsNullOrWhiteSpace($val)) {
+            if ($Required) { Fail "$EnvVar が空です。" } else { $val = "" }
+        }
+    }
+
+    if ($Prefix -and -not $val.StartsWith($Prefix)) {
+        Write-Warn "${EnvVar} が ${Prefix} で始まっていません。"
+    }
+    return $val
+}
+
 # -----------------------------------------------------------------------------
 # 前提ツール確認
 # -----------------------------------------------------------------------------
@@ -93,29 +141,14 @@ Set-Location $AwsDir
 Write-Info "作業ディレクトリ: $AwsDir"
 
 # -----------------------------------------------------------------------------
-# PAY.JP キー設定 (保存済み → 環境変数 → 対話入力 の優先順位)
-# 保存先: aws\.poi-webhook-deploy.json (DPAPI 暗号化 — Windows ユーザー固有)
+# Google ログイン設定（任意）
 # -----------------------------------------------------------------------------
-Write-Host "`n=== PAY.JP キー設定 ===" -ForegroundColor White -BackgroundColor DarkGray
-
-$ConfigFile = Join-Path $AwsDir ".poi-webhook-deploy.json"
-
-function ConvertTo-Dpapi {
-    param([string]$PlainText)
-    if ([string]::IsNullOrEmpty($PlainText)) { return "" }
-    $secure = ConvertTo-SecureString $PlainText -AsPlainText -Force
-    return ConvertFrom-SecureString $secure   # DPAPI 暗号化 (ユーザー鍵)
-}
-
-function ConvertFrom-Dpapi {
-    param([string]$Encrypted)
-    if ([string]::IsNullOrEmpty($Encrypted)) { return "" }
-    $secure = ConvertTo-SecureString $Encrypted
-    return [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-        [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
-}
+Write-Host "`n=== Google ログイン設定（任意）===" -ForegroundColor White -BackgroundColor DarkGray
+Write-Info "Google でのサインインを有効にするには Google OAuth クライアントを設定してください。"
+Write-Info "不要な場合は Enter でスキップします。"
 
 # 保存済み設定を読み込む
+$ConfigFile = Join-Path $AwsDir ".poi-webhook-deploy.json"
 $saved = @{}
 if (Test-Path $ConfigFile) {
     try {
@@ -126,55 +159,6 @@ if (Test-Path $ConfigFile) {
     }
 }
 
-function Get-Value {
-    param([string]$EnvVar, [string]$Prompt, [string]$Prefix,
-          [bool]$Secret = $true, [bool]$Required = $true)
-    # 優先順位: 環境変数 > 保存済み > 対話入力
-    $val = [System.Environment]::GetEnvironmentVariable($EnvVar)
-    if ([string]::IsNullOrWhiteSpace($val) -and $saved.ContainsKey($EnvVar)) {
-        $val = ConvertFrom-Dpapi $saved[$EnvVar]
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($val)) {
-        # 保存済みあり: Enter でスキップ、入力すれば上書き
-        $hint = if ($Secret) { "$($val.Substring(0, [Math]::Min(4,$val.Length)))****" } else { $val }
-        if ($Secret) {
-            $new = Read-Secret -Prompt "$Prompt [$hint] (Enter でそのまま)"
-        } else {
-            $new = Read-Host  -Prompt "$Prompt [$hint] (Enter でそのまま)"
-        }
-        if (-not [string]::IsNullOrWhiteSpace($new)) { $val = $new }
-    } else {
-        # 未保存: 必ず入力
-        if ($Secret) { $val = Read-Secret -Prompt $Prompt }
-        else          { $val = Read-Host  -Prompt $Prompt }
-        if ([string]::IsNullOrWhiteSpace($val)) {
-            if ($Required) { Fail "$EnvVar が空です。" } else { $val = "" }
-        }
-    }
-
-    if ($Prefix -and -not $val.StartsWith($Prefix)) {
-        Write-Warn "${EnvVar} が ${Prefix} で始まっていません。"
-    }
-    return $val
-}
-
-$PayjpSecretKey     = Get-Value "PAYJP_SECRET_KEY"     "PAY.JP シークレットキー (sk_live_... / sk_test_...)"    "sk_"  $true  $true
-$PayjpPublicKey     = Get-Value "PAYJP_PUBLIC_KEY"     "PAY.JP 公開キー (pk_live_... / pk_test_...)"            "pk_"  $false $true
-$PayjpPrice1m       = Get-Value "PAYJP_PRICE_1M"       "PAY.JP v2 価格 ID — 1ヶ月プラン (price_...)"             "price_" $false $true
-$PayjpPrice6m       = Get-Value "PAYJP_PRICE_6M"       "PAY.JP v2 価格 ID — 6ヶ月プラン (price_...)"             "price_" $false $true
-$PayjpPrice12m      = Get-Value "PAYJP_PRICE_12M"      "PAY.JP v2 価格 ID — 12ヶ月プラン (price_...)"            "price_" $false $true
-$PayjpWebhookSecret = Get-Value "PAYJP_WEBHOOK_SECRET" "PAY.JP Webhook シークレット (whook_...) (空 Enter で後から設定)" "" $true $false
-if ([string]::IsNullOrWhiteSpace($PayjpWebhookSecret)) {
-    Write-Warn "PAYJP_WEBHOOK_SECRET が空です。デプロイ後に再デプロイして設定してください。"
-}
-
-# -----------------------------------------------------------------------------
-# Google ログイン設定（任意）
-# -----------------------------------------------------------------------------
-Write-Host "`n=== Google ログイン設定（任意）===" -ForegroundColor White -BackgroundColor DarkGray
-Write-Info "Google でのサインインを有効にするには Google OAuth クライアントを設定してください。"
-Write-Info "不要な場合は Enter でスキップします。"
 $GoogleClientId = Get-Value "GOOGLE_CLIENT_ID" "Google OAuth クライアント ID (空 Enter でスキップ)" "" $false $false
 if (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) {
     $GoogleClientSecret = Get-Value "GOOGLE_CLIENT_SECRET" "Google OAuth クライアントシークレット" "" $true $true
@@ -185,14 +169,8 @@ if (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) {
 
 # 設定を DPAPI 暗号化して保存
 $toSave = @{
-    PAYJP_SECRET_KEY      = ConvertTo-Dpapi $PayjpSecretKey
-    PAYJP_PUBLIC_KEY      = ConvertTo-Dpapi $PayjpPublicKey
-    PAYJP_PRICE_1M        = ConvertTo-Dpapi $PayjpPrice1m
-    PAYJP_PRICE_6M        = ConvertTo-Dpapi $PayjpPrice6m
-    PAYJP_PRICE_12M       = ConvertTo-Dpapi $PayjpPrice12m
-    PAYJP_WEBHOOK_SECRET  = ConvertTo-Dpapi $PayjpWebhookSecret
-    GOOGLE_CLIENT_ID      = ConvertTo-Dpapi $GoogleClientId
-    GOOGLE_CLIENT_SECRET  = ConvertTo-Dpapi $GoogleClientSecret
+    GOOGLE_CLIENT_ID     = ConvertTo-Dpapi $GoogleClientId
+    GOOGLE_CLIENT_SECRET = ConvertTo-Dpapi $GoogleClientSecret
 }
 $toSave | ConvertTo-Json | Set-Content $ConfigFile -Encoding UTF8
 Write-Success "設定を暗号化して保存しました: $ConfigFile (DPAPI)"
@@ -235,12 +213,6 @@ if (-not $SkipBootstrap) {
 # CDK パラメータ
 # -----------------------------------------------------------------------------
 $CdkParams = @(
-    "--parameters", "PayjpSecretKey=$PayjpSecretKey",
-    "--parameters", "PayjpPublicKey=$PayjpPublicKey",
-    "--parameters", "PayjpWebhookSecret=$PayjpWebhookSecret",
-    "--parameters", "PayjpPrice1m=$PayjpPrice1m",
-    "--parameters", "PayjpPrice6m=$PayjpPrice6m",
-    "--parameters", "PayjpPrice12m=$PayjpPrice12m",
     "--parameters", "GoogleClientId=$GoogleClientId",
     "--parameters", "GoogleClientSecret=$GoogleClientSecret"
 )
@@ -277,6 +249,13 @@ if ((Test-Path $OutputsFile) -and (Test-Path $SrcDir)) {
     Write-Success "CDK Outputs を src\aws-outputs.json にコピーしました"
 }
 
+# mobile-app/ にコピー（スマホアプリ起動時に自動読み込み）
+$MobileAppDir = Join-Path (Split-Path $AwsDir -Parent) "mobile-app"
+if ((Test-Path $OutputsFile) -and (Test-Path $MobileAppDir)) {
+    Copy-Item $OutputsFile (Join-Path $MobileAppDir "aws-outputs.json") -Force
+    Write-Success "CDK Outputs を mobile-app\aws-outputs.json にコピーしました"
+}
+
 # -----------------------------------------------------------------------------
 # デプロイ後: Outputs 表示
 # -----------------------------------------------------------------------------
@@ -301,9 +280,5 @@ Write-Success "CDK Outputs を保存しました: $OutputsFile"
 Write-Info   "  → poi プラグインを再起動すると AWS モードの設定が自動入力されます"
 Write-Host ""
 Write-Host "次のステップ:" -ForegroundColor White
-Write-Host "  1. PAY.JP v2 ダッシュボードで Webhook を登録してください:"
-Write-Host "     URL   : ${apiUrl}payjp/webhook" -ForegroundColor Cyan
-Write-Host "     イベント: checkout.session.completed"
-Write-Host "     ※ Webhook トークン (whook_...) を PAYJP_WEBHOOK_SECRET に設定して再デプロイしてください"
-Write-Host "  2. poi を再起動してプラグインを開き、AWS モードを選択してログインしてください"
+Write-Host "  1. poi を再起動してプラグインを開き、AWS モードを選択してログインしてください"
 Write-Host ""
