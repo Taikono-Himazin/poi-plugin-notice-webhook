@@ -5,7 +5,7 @@ const {
   DynamoDBDocumentClient,
   GetCommand, PutCommand, DeleteCommand, QueryCommand,
 } = require('@aws-sdk/lib-dynamodb')
-const { SchedulerClient, CreateScheduleCommand, DeleteScheduleCommand } = require('@aws-sdk/client-scheduler')
+const { SchedulerClient, CreateScheduleCommand, UpdateScheduleCommand, DeleteScheduleCommand } = require('@aws-sdk/client-scheduler')
 const crypto = require('crypto')
 
 const dynamo    = DynamoDBDocumentClient.from(new DynamoDBClient({}))
@@ -124,7 +124,7 @@ exports.handler = async (event) => {
       }))
 
       const scheduleExpr = deliverAt.toISOString().replace(/\.\d{3}Z$/, '')
-      await scheduler.send(new CreateScheduleCommand({
+      const scheduleParams = {
         Name: scheduleName,
         ScheduleExpression: `at(${scheduleExpr})`,
         ScheduleExpressionTimezone: 'UTC',
@@ -135,7 +135,16 @@ exports.handler = async (event) => {
           Input:  JSON.stringify({ notificationId }),
         },
         ActionAfterCompletion: 'DELETE',
-      }))
+      }
+      try {
+        await scheduler.send(new CreateScheduleCommand(scheduleParams))
+      } catch (e) {
+        if (e.name === 'ConflictException') {
+          await scheduler.send(new UpdateScheduleCommand(scheduleParams))
+        } else {
+          throw e
+        }
+      }
     }
 
     scheduled++

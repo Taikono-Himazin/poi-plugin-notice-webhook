@@ -8,7 +8,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { Storage, loadConfigFromOutputs } from './src/lib/storage'
 import { requestPermissions } from './src/lib/notifications'
 import { registerBackgroundSync } from './src/lib/backgroundSync'
-import { logout } from './src/lib/auth'
+import { logout, refreshTokens } from './src/lib/auth'
 import LoginScreen from './src/screens/LoginScreen'
 import HomeScreen from './src/screens/HomeScreen'
 
@@ -34,7 +34,12 @@ export default function App() {
         // 通知・バックグラウンド初期化の失敗はアプリ起動を止めない
       }
       try {
-        const valid = await Storage.isJwtValid()
+        let valid = await Storage.isJwtValid()
+        if (!valid) {
+          // トークン期限切れ → refreshToken でサイレントリフレッシュを試行
+          const newJwt = await refreshTokens()
+          valid = !!newJwt
+        }
         setIsLoggedIn(valid)
       } catch {
         setIsLoggedIn(false)

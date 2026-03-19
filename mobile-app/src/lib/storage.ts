@@ -21,6 +21,7 @@ export function loadConfigFromOutputs(): AuthConfig | null {
 const KEYS = {
   JWT:               'jwt',
   JWT_EXPIRY:        'jwt_expiry',
+  REFRESH_TOKEN:     'refresh_token',
   API_URL:           'api_url',
   CLIENT_ID:         'client_id',
   COGNITO_DOMAIN:    'cognito_domain',
@@ -55,15 +56,21 @@ export const Storage = {
     return AsyncStorage.getItem(KEYS.JWT)
   },
 
-  async setJwt(jwt: string, expiry: number): Promise<void> {
-    await AsyncStorage.multiSet([
+  async setJwt(jwt: string, expiry: number, refreshToken?: string): Promise<void> {
+    const pairs: [string, string][] = [
       [KEYS.JWT, jwt],
       [KEYS.JWT_EXPIRY, String(expiry)],
-    ])
+    ]
+    if (refreshToken) pairs.push([KEYS.REFRESH_TOKEN, refreshToken])
+    await AsyncStorage.multiSet(pairs)
+  },
+
+  async getRefreshToken(): Promise<string | null> {
+    return AsyncStorage.getItem(KEYS.REFRESH_TOKEN)
   },
 
   async clearJwt(): Promise<void> {
-    await AsyncStorage.multiRemove([KEYS.JWT, KEYS.JWT_EXPIRY])
+    await AsyncStorage.multiRemove([KEYS.JWT, KEYS.JWT_EXPIRY, KEYS.REFRESH_TOKEN])
   },
 
   async isJwtValid(): Promise<boolean> {

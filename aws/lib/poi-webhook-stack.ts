@@ -82,6 +82,8 @@ export class PoiWebhookStack extends Stack {
       allowedOAuthFlowsUserPoolClient: true,
       callbackUrLs: ['http://localhost:17890/callback', 'poi-notice://auth'],
       logoutUrLs: ['http://localhost:17890/logout', 'poi-notice://logout'],
+      refreshTokenValidity: 3650,
+      tokenValidityUnits: { refreshToken: 'days' },
     })
     userPoolClientCfn.addPropertyOverride(
       'SupportedIdentityProviders',
