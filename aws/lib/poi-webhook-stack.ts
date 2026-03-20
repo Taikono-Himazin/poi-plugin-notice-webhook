@@ -23,12 +23,22 @@ export class PoiWebhookStack extends Stack {
       type: 'String', noEcho: true, default: '',
       description: 'Google OAuth 2.0 クライアントシークレット',
     })
+    const googleOnlyParam = new CfnParameter(this, 'GoogleOnly', {
+      type: 'String', default: 'false', allowedValues: ['true', 'false'],
+      description: 'true にすると Google ログインのみ許可（メール/パスワードによるサインアップ・サインインを無効化）',
+    })
 
     // ----------------------------------------------------------------
     // Cognito User Pool + Managed Login
     // ----------------------------------------------------------------
     const hasGoogle = new CfnCondition(this, 'HasGoogleCredentials', {
       expression: Fn.conditionNot(Fn.conditionEquals(googleClientIdParam.valueAsString, '')),
+    })
+    const isGoogleOnly = new CfnCondition(this, 'IsGoogleOnly', {
+      expression: Fn.conditionAnd(
+        Fn.conditionNot(Fn.conditionEquals(googleClientIdParam.valueAsString, '')),
+        Fn.conditionEquals(googleOnlyParam.valueAsString, 'true'),
+      ),
     })
 
     const userPool = new cognito.UserPool(this, 'UserPool', {
@@ -45,6 +55,17 @@ export class PoiWebhookStack extends Stack {
       },
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
       removalPolicy: RemovalPolicy.RETAIN,
+    })
+
+    const cfnUserPool = userPool.node.defaultChild as cognito.CfnUserPool
+    // GoogleOnly 時はセルフサインアップを無効化（Google IdP 経由のみ許可）
+    cfnUserPool.addPropertyOverride(
+      'AdminCreateUserConfig.AllowAdminCreateUserOnly',
+      Fn.conditionIf('IsGoogleOnly', true, false),
+    )
+    // NEWER_MANAGED_LOGIN のサインアップ時メール認証チャレンジに必要
+    cfnUserPool.addPropertyOverride('Policies.SignInPolicy', {
+      AllowedFirstAuthFactors: ['PASSWORD', 'EMAIL_OTP'],
     })
 
     // Cognito Managed Login ドメイン
@@ -73,6 +94,7 @@ export class PoiWebhookStack extends Stack {
       clientName: 'WebClient',
       generateSecret: false,
       explicitAuthFlows: [
+        'ALLOW_USER_AUTH',
         'ALLOW_USER_PASSWORD_AUTH',
         'ALLOW_USER_SRP_AUTH',
         'ALLOW_REFRESH_TOKEN_AUTH',
@@ -82,10 +104,13 @@ export class PoiWebhookStack extends Stack {
       allowedOAuthFlowsUserPoolClient: true,
       callbackUrLs: ['http://localhost:17890/callback', 'poi-notice://auth'],
       logoutUrLs: ['http://localhost:17890/logout', 'poi-notice://logout'],
+      refreshTokenValidity: 3650,
+      tokenValidityUnits: { refreshToken: 'days' },
     })
     userPoolClientCfn.addPropertyOverride(
       'SupportedIdentityProviders',
-      Fn.conditionIf('HasGoogleCredentials', ['COGNITO', 'Google'], ['COGNITO']),
+      Fn.conditionIf('IsGoogleOnly', ['Google'],
+        Fn.conditionIf('HasGoogleCredentials', ['COGNITO', 'Google'], ['COGNITO'])),
     )
 
     // Managed Login ブランディング（Cognito デフォルトスタイルを使用）

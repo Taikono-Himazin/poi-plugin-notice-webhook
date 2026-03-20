@@ -29,6 +29,7 @@
   "awsLoginWithCognito": "Login",
   "awsLoginGuide1": "Account registration is free.",
   "awsLoginGuide2": "Cloud notifications are available immediately after registration.",
+  "awsLoginCancel": "Cancel",
   "awsLoginNote": "You can also create a new account from the login screen.",
   "awsDeliveryConfigSection": "Delivery Settings",
   "awsDeliveryConfigCloud": "Settings are saved to the cloud",

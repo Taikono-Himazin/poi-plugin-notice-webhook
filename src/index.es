@@ -532,6 +532,13 @@ const AwsManagedLogin = ({ apiUrl, clientId, cognitoDomain, jwt, savedEmail, onL
     )
   }
 
+  const handleCancelLogin = () => {
+    if (_oauthServer) { try { _oauthServer.close() } catch (_) { } _oauthServer = null }
+    _oauthCallbacks = null
+    setWaiting(false)
+    setStatusMsg('')
+  }
+
   if (jwt) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -545,9 +552,16 @@ const AwsManagedLogin = ({ apiUrl, clientId, cognitoDomain, jwt, savedEmail, onL
     <div>
       <p style={{ fontSize: '12px', color: '#aaa', marginBottom: 4 }}>{t('awsLoginGuide1')}</p>
       <p style={{ fontSize: '12px', color: '#5cb85c', marginBottom: 8 }}>{t('awsLoginGuide2')}</p>
-      <Button bsSize="xs" bsStyle="primary" onClick={handleLogin} disabled={waiting}>
-        {waiting ? t('awsLoginWaiting') : t('awsLoginWithCognito')}
-      </Button>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <Button bsSize="xs" bsStyle="primary" onClick={handleLogin} disabled={waiting}>
+          {waiting ? t('awsLoginWaiting') : t('awsLoginWithCognito')}
+        </Button>
+        {waiting && (
+          <Button bsSize="xs" bsStyle="default" onClick={handleCancelLogin}>
+            {t('awsLoginCancel')}
+          </Button>
+        )}
+      </div>
       {statusMsg && !waiting && (
         <p style={{ fontSize: '12px', color: '#d9534f', marginTop: 6, marginBottom: 0 }}>{statusMsg}</p>
       )}
@@ -819,6 +833,7 @@ export const reactClass = () => {
     try {
       syncFromStore()
       setForceSyncResult('ok')
+      setTimeout(() => setForceSyncResult(null), 10_000)
     } catch (_) {
       setForceSyncResult('error')
     } finally {
@@ -967,9 +982,11 @@ export const reactClass = () => {
                   </Button>
                 )
               )}
-              <Button bsStyle="default" onClick={handleTest} disabled={testing}>
-                {testing ? t('testing') : t('test')}
-              </Button>
+              {(!isAws || awsJwt) && (
+                <Button bsStyle="default" onClick={handleTest} disabled={testing}>
+                  {testing ? t('testing') : t('test')}
+                </Button>
+              )}
               {isAws && awsJwt && (
                 <Button bsStyle="default" onClick={handleForceSync} disabled={forceSyncing}>
                   {forceSyncing ? t('forceSyncing') : t('forceSync')}

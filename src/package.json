@@ -1,6 +1,6 @@
 {
   "name": "poi-plugin-notice-webhook",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "艦これ専ブラのpoiの通知をwebhookに対応させる",
   "main": "index.es",
   "scripts": {
