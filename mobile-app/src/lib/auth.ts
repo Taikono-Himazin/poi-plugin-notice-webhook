@@ -1,5 +1,6 @@
 import * as AuthSession from 'expo-auth-session'
 import * as WebBrowser from 'expo-web-browser'
+import { Platform, NativeModules } from 'react-native'
 import { Storage, AuthConfig } from './storage'
 
 WebBrowser.maybeCompleteAuthSession()
@@ -30,11 +31,28 @@ function parseJwt(token: string): Record<string, unknown> {
   return JSON.parse(atob(payload))
 }
 
+function getDeviceLanguage(): string {
+  try {
+    const locale =
+      Platform.OS === 'ios'
+        ? NativeModules.SettingsManager?.settings?.AppleLocale ??
+          NativeModules.SettingsManager?.settings?.AppleLanguages?.[0]
+        : NativeModules.I18nManager?.localeIdentifier
+    if (!locale) return 'ja'
+    // 'ja_JP' → 'ja', 'zh_CN' → 'zh-CN'
+    const normalized = locale.replace('_', '-')
+    return normalized.startsWith('zh') ? normalized : normalized.split('-')[0]
+  } catch {
+    return 'ja'
+  }
+}
+
 export type LoginResult = { jwt: string; email: string }
 
 export async function login(config: AuthConfig): Promise<LoginResult> {
   const region    = extractRegion(config.apiUrl)
   const discovery = buildDiscovery(config.cognitoDomain, region)
+  const lang      = getDeviceLanguage()
 
   const request = new AuthSession.AuthRequest({
     clientId:     config.clientId,
@@ -42,6 +60,7 @@ export async function login(config: AuthConfig): Promise<LoginResult> {
     redirectUri:  REDIRECT_URI,
     responseType: AuthSession.ResponseType.Code,
     usePKCE:      true,
+    extraParams:  { lang },
   })
 
   const result = await request.promptAsync(discovery)

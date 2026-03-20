@@ -11,7 +11,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.github.taikonohimazin.poinotice",
       "infoPlist": {
-        "UIBackgroundModes": ["fetch"],
+        "UIBackgroundModes": [
+          "fetch"
+        ],
         "ITSAppUsesNonExemptEncryption": false
       }
     },

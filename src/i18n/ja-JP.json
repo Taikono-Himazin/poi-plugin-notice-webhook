@@ -30,6 +30,7 @@
   "awsLoginWithCognito": "ログイン",
   "awsLoginGuide1": "アカウント登録は無料です。",
   "awsLoginGuide2": "登録後すぐにクラウド通知をご利用いただけます。",
+  "awsLoginCancel": "中止",
   "awsLoginNote": "新規登録もログイン画面から行えます。",
   "awsDeliveryConfigSection": "配信先設定",
   "awsDeliveryConfigCloud": "設定はクラウドに保存されます",

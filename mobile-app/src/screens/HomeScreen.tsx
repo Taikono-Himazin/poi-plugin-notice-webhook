@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View, Text, ScrollView, TouchableOpacity, Switch,
-  StyleSheet, ActivityIndicator, RefreshControl, Alert,
+  StyleSheet, RefreshControl, Alert,
 } from 'react-native'
 import { Storage, Timer, NotifySettings } from '../lib/storage'
+import AboutScreen from './AboutScreen'
 import { fetchTimers } from '../lib/api'
 import { scheduleTimerNotifications, getScheduledCount } from '../lib/notifications'
 
@@ -40,6 +41,7 @@ export default function HomeScreen({ onLogout }: Props) {
   const [lastSync,       setLastSync]       = useState<number | null>(null)
   const [scheduledCount, setScheduledCount] = useState(0)
   const [syncing,        setSyncing]        = useState(false)
+  const [showAbout,      setShowAbout]      = useState(false)
   const [, setTick] = useState(0)
 
   // 残り時間表示を毎秒更新
@@ -119,6 +121,10 @@ export default function HomeScreen({ onLogout }: Props) {
     ? `最終同期: ${new Date(lastSync).toLocaleTimeString('ja-JP')}`
     : '未同期'
 
+  if (showAbout) {
+    return <AboutScreen onBack={() => setShowAbout(false)} />
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -136,12 +142,6 @@ export default function HomeScreen({ onLogout }: Props) {
       <View style={styles.statusCard}>
         <Text style={styles.statusText}>{lastSyncText}</Text>
         <Text style={styles.statusSub}>通知スケジュール済み: {scheduledCount} 件</Text>
-        <TouchableOpacity style={styles.syncButton} onPress={sync} disabled={syncing}>
-          {syncing
-            ? <ActivityIndicator color="#fff" size="small" />
-            : <Text style={styles.syncButtonText}>今すぐ同期</Text>
-          }
-        </TouchableOpacity>
       </View>
 
       {/* 通知設定 */}
@@ -173,7 +173,7 @@ export default function HomeScreen({ onLogout }: Props) {
           <View style={styles.emptyCard}>
             <Text style={styles.emptyText}>
               {timers.length === 0
-                ? '↑「今すぐ同期」でタイマーを取得してください'
+                ? '↓ 引っ張って同期でタイマーを取得してください'
                 : '現在進行中のタイマーはありません'}
             </Text>
           </View>
@@ -200,6 +200,10 @@ export default function HomeScreen({ onLogout }: Props) {
       </View>
 
       <Text style={styles.pullHint}>↓ 引っ張って同期 / 機内モードでも通知が届きます</Text>
+
+      <TouchableOpacity style={styles.aboutButton} onPress={() => setShowAbout(true)}>
+        <Text style={styles.aboutButtonText}>このアプリについて</Text>
+      </TouchableOpacity>
     </ScrollView>
   )
 }
@@ -211,9 +215,9 @@ const styles = StyleSheet.create({
   logoutText:     { color: '#666', fontSize: 14 },
   statusCard:     { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e1e30', borderRadius: 12, padding: 16 },
   statusText:     { color: '#ccc', fontSize: 13, marginBottom: 2 },
-  statusSub:      { color: '#666', fontSize: 12, marginBottom: 12 },
-  syncButton:       { backgroundColor: '#5865f2', borderRadius: 8, padding: 12, alignItems: 'center' },
-  syncButtonText:   { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  statusSub:      { color: '#666', fontSize: 12 },
+  aboutButton:      { marginTop: 8, alignItems: 'center', paddingVertical: 12 },
+  aboutButtonText:  { color: '#666', fontSize: 13 },
   section:        { marginHorizontal: 16, marginBottom: 16 },
   sectionTitle:   { color: '#666', fontSize: 11, fontWeight: 'bold', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 },
   settingRow:     { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e1e30', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 6 },
