@@ -45,6 +45,15 @@ export default function AboutScreen({ onBack }: Props) {
           <Text style={[styles.bodyText, { marginTop: 8 }]}>
             © 2025 taikonohimazin
           </Text>
+          <TouchableOpacity
+            style={{ marginTop: 12 }}
+            onPress={() => Linking.openURL('https://www.pixiv.net/artworks/39534914')}
+          >
+            <Text style={styles.bodyText}>
+              アイコン画像出典:{' '}
+              <Text style={{ color: '#5865f2' }}>pixiv - 39534914</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 

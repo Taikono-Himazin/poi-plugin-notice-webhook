@@ -65,12 +65,12 @@ export default function HomeScreen({ onLogout }: Props) {
 
   useEffect(() => { loadFromCache() }, [loadFromCache])
 
-  const sync = useCallback(async () => {
+  const sync = useCallback(async (silent = false) => {
     setSyncing(true)
     try {
       const [jwt, config] = await Promise.all([Storage.getJwt(), Storage.getAuthConfig()])
       if (!jwt || !config) {
-        Alert.alert('エラー', 'ログインが必要です')
+        if (!silent) Alert.alert('エラー', 'ログインが必要です')
         return
       }
 
@@ -90,12 +90,20 @@ export default function HomeScreen({ onLogout }: Props) {
       setLastSync(Date.now())
       setScheduledCount(sc)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      Alert.alert('同期失敗', msg)
+      if (!silent) {
+        const msg = e instanceof Error ? e.message : String(e)
+        Alert.alert('同期失敗', msg)
+      }
     } finally {
       setSyncing(false)
     }
   }, [])
+
+  // フォアグラウンド時に10分おきに自動同期
+  useEffect(() => {
+    const id = setInterval(() => sync(true), 10 * 60 * 1_000)
+    return () => clearInterval(id)
+  }, [sync])
 
 
   const toggleSetting = useCallback(async (key: keyof NotifySettings, value: boolean) => {
@@ -128,7 +136,7 @@ export default function HomeScreen({ onLogout }: Props) {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={syncing} onRefresh={sync} tintColor="#5865f2" />}
+      refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => sync()} tintColor="#5865f2" />}
     >
       {/* ヘッダー */}
       <View style={styles.header}>
