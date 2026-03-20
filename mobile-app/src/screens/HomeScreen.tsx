@@ -7,6 +7,7 @@ import { Storage, Timer, NotifySettings } from '../lib/storage'
 import AboutScreen from './AboutScreen'
 import { fetchTimers } from '../lib/api'
 import { scheduleTimerNotifications, getScheduledCount } from '../lib/notifications'
+import { reportError } from '../lib/reportError'
 
 type Props = {
   onLogout: () => void
@@ -90,6 +91,7 @@ export default function HomeScreen({ onLogout }: Props) {
       setLastSync(Date.now())
       setScheduledCount(sc)
     } catch (e: unknown) {
+      reportError(e, { action: 'sync' })
       if (!silent) {
         const msg = e instanceof Error ? e.message : String(e)
         Alert.alert('同期失敗', msg)

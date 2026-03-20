@@ -275,7 +275,7 @@ function syncTimers(timers) {
 
   axios.put(`${awsApiUrl}/timers`, { timers, enabled }, {
     headers: { Authorization: `Bearer ${jwt}` },
-  }).catch((e) => console.error(`[${PLUGIN_KEY}] タイマー同期エラー:`, e.message))
+  }).catch((e) => { console.error(`[${PLUGIN_KEY}] タイマー同期エラー:`, e.message); reportError(e, { action: 'syncTimers' }) })
 }
 
 // ゲームイベントハンドラ
@@ -346,7 +346,26 @@ function syncFromStore() {
     else scheduleDirectNotifications(timers)
   } catch (e) {
     console.error(`[${PLUGIN_KEY}] store からのタイマー取得エラー:`, e.message)
+    reportError(e, { action: 'syncFromStore' })
   }
+}
+
+// ---- エラー報告 ----
+const _reportedErrors = new Set()
+function reportError(err, ctx = {}) {
+  const apiUrl = getConfig('awsApiUrl', '')
+  if (!apiUrl) return
+  // 同じメッセージの重複送信を抑制（セッション内）
+  const key = (err.message || String(err)).slice(0, 200)
+  if (_reportedErrors.has(key)) return
+  _reportedErrors.add(key)
+  axios.post(`${apiUrl}/errors`, {
+    source: 'poi-plugin',
+    level: 'error',
+    message: key,
+    stack: (err.stack || '').slice(0, 5000),
+    context: { pluginVersion: '1.0.2', ...ctx },
+  }).catch(() => {})
 }
 
 // ---- 通知タイプ別カラー ----

@@ -28,20 +28,28 @@ exports.handler = async (event) => {
   const body = JSON.parse(event.body || '{}')
   const { webhookType, webhookUrl } = body
 
-  if (!webhookType || !['discord', 'slack'].includes(webhookType)) {
+  if (!webhookType || !['none', 'discord', 'slack'].includes(webhookType)) {
     return err(400, 'Invalid webhookType')
   }
-  if (!webhookUrl) return err(400, 'webhookUrl is required')
 
-  await dynamo.send(new UpdateCommand({
-    TableName: process.env.ACCOUNTS_TABLE,
-    Key: { userId },
-    UpdateExpression: 'SET webhookType = :t, webhookUrl = :u',
-    ExpressionAttributeValues: {
-      ':t': webhookType,
-      ':u': webhookUrl,
-    },
-  }))
+  if (webhookType === 'none') {
+    await dynamo.send(new UpdateCommand({
+      TableName: process.env.ACCOUNTS_TABLE,
+      Key: { userId },
+      UpdateExpression: 'REMOVE webhookType, webhookUrl',
+    }))
+  } else {
+    if (!webhookUrl) return err(400, 'webhookUrl is required')
+    await dynamo.send(new UpdateCommand({
+      TableName: process.env.ACCOUNTS_TABLE,
+      Key: { userId },
+      UpdateExpression: 'SET webhookType = :t, webhookUrl = :u',
+      ExpressionAttributeValues: {
+        ':t': webhookType,
+        ':u': webhookUrl,
+      },
+    }))
+  }
 
   return ok({ ok: true })
 }
