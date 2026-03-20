@@ -21,6 +21,7 @@
 .EXAMPLE
     .\deploy.ps1 -Profile myprofile -Region ap-northeast-1
     .\deploy.ps1 -Profile prod -Region ap-northeast-1 -SkipBootstrap
+    # Google ログインのみにする場合は、対話プロンプトで true を入力
 #>
 
 param(
@@ -162,8 +163,16 @@ if (Test-Path $ConfigFile) {
 $GoogleClientId = Get-Value "GOOGLE_CLIENT_ID" "Google OAuth クライアント ID (空 Enter でスキップ)" "" $false $false
 if (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) {
     $GoogleClientSecret = Get-Value "GOOGLE_CLIENT_SECRET" "Google OAuth クライアントシークレット" "" $true $true
+
+    # Google ログインオンリーモード
+    if (-not $saved.ContainsKey("GOOGLE_ONLY")) { $saved["GOOGLE_ONLY"] = "" }
+    $prevGoogleOnly = if ($saved["GOOGLE_ONLY"] -eq "true") { "true" } else { "false" }
+    $googleOnlyInput = Read-Host -Prompt "Google ログインのみ許可する? (true/false) [$prevGoogleOnly] (Enter でそのまま)"
+    if ([string]::IsNullOrWhiteSpace($googleOnlyInput)) { $GoogleOnly = $prevGoogleOnly }
+    else { $GoogleOnly = $googleOnlyInput }
 } else {
     $GoogleClientSecret = ""
+    $GoogleOnly = "false"
     Write-Warn "Google ログインをスキップしました。後から再デプロイして追加できます。"
 }
 
@@ -171,6 +180,7 @@ if (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) {
 $toSave = @{
     GOOGLE_CLIENT_ID     = ConvertTo-Dpapi $GoogleClientId
     GOOGLE_CLIENT_SECRET = ConvertTo-Dpapi $GoogleClientSecret
+    GOOGLE_ONLY          = $GoogleOnly
 }
 $toSave | ConvertTo-Json | Set-Content $ConfigFile -Encoding UTF8
 Write-Success "設定を暗号化して保存しました: $ConfigFile (DPAPI)"
@@ -214,7 +224,8 @@ if (-not $SkipBootstrap) {
 # -----------------------------------------------------------------------------
 $CdkParams = @(
     "--parameters", "GoogleClientId=$GoogleClientId",
-    "--parameters", "GoogleClientSecret=$GoogleClientSecret"
+    "--parameters", "GoogleClientSecret=$GoogleClientSecret",
+    "--parameters", "GoogleOnly=$GoogleOnly"
 )
 
 # -----------------------------------------------------------------------------

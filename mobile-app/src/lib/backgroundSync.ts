@@ -1,6 +1,7 @@
 import * as BackgroundTask from 'expo-background-task'
 import * as TaskManager from 'expo-task-manager'
 import { Storage } from './storage'
+import { refreshTokens } from './auth'
 import { fetchTimers } from './api'
 import { scheduleTimerNotifications } from './notifications'
 
@@ -10,13 +11,17 @@ export const BACKGROUND_SYNC_TASK = 'poi-notice-background-sync'
 // App.tsx で import されることで定義が確実に実行される。
 TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
   try {
-    const isValid = await Storage.isJwtValid()
-    if (!isValid) return BackgroundTask.BackgroundTaskResult.NoData
+    let jwt: string | null = null
 
-    const [jwt, config] = await Promise.all([
-      Storage.getJwt(),
-      Storage.getAuthConfig(),
-    ])
+    const isValid = await Storage.isJwtValid()
+    if (isValid) {
+      jwt = await Storage.getJwt()
+    } else {
+      // トークン期限切れ → refreshToken でサイレントリフレッシュ
+      jwt = await refreshTokens()
+    }
+
+    const config = await Storage.getAuthConfig()
     if (!jwt || !config) return BackgroundTask.BackgroundTaskResult.NoData
 
     const timers   = await fetchTimers(config.apiUrl, jwt)

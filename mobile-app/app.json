@@ -5,19 +5,24 @@
     "version": "1.0.0",
     "scheme": "poi-notice",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.poinotice.app",
+      "bundleIdentifier": "com.github.taikonohimazin.poinotice",
       "infoPlist": {
-        "UIBackgroundModes": ["fetch"]
+        "UIBackgroundModes": [
+          "fetch"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
-      "package": "com.poinotice.app"
+      "package": "com.github.taikonohimazin.poinotice"
     },
     "plugins": [
       "expo-background-task",
@@ -27,6 +32,11 @@
           "color": "#5865f2"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f7f74146-d99d-482f-a190-d3c78926c6eb"
+      }
+    }
   }
 }
