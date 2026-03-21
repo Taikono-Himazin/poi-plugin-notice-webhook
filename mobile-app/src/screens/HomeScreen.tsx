@@ -3,9 +3,11 @@ import {
   View, Text, ScrollView, TouchableOpacity, Switch,
   StyleSheet, RefreshControl, Alert,
 } from 'react-native'
+import Constants from 'expo-constants'
 import { Storage, Timer, NotifySettings } from '../lib/storage'
 import AboutScreen from './AboutScreen'
 import { fetchTimers } from '../lib/api'
+import { refreshTokens } from '../lib/auth'
 import { scheduleTimerNotifications, getScheduledCount } from '../lib/notifications'
 
 type Props = {
@@ -68,8 +70,16 @@ export default function HomeScreen({ onLogout }: Props) {
   const sync = useCallback(async (silent = false) => {
     setSyncing(true)
     try {
-      const [jwt, config] = await Promise.all([Storage.getJwt(), Storage.getAuthConfig()])
-      if (!jwt || !config) {
+      let [jwt, config] = await Promise.all([Storage.getJwt(), Storage.getAuthConfig()])
+      if (!config) {
+        if (!silent) Alert.alert('エラー', 'ログインが必要です')
+        return
+      }
+      const isValid = await Storage.isJwtValid()
+      if (!isValid) {
+        jwt = await refreshTokens()
+      }
+      if (!jwt) {
         if (!silent) Alert.alert('エラー', 'ログインが必要です')
         return
       }
@@ -218,7 +228,7 @@ export default function HomeScreen({ onLogout }: Props) {
 
 const styles = StyleSheet.create({
   container:      { flex: 1, backgroundColor: '#0f0f1a' },
-  header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 56 },
+  header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: (Constants.statusBarHeight ?? 0) + 12 },
   headerTitle:    { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   logoutText:     { color: '#666', fontSize: 14 },
   statusCard:     { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e1e30', borderRadius: 12, padding: 16 },
