@@ -12,6 +12,7 @@
   },
   "files": [
     "index.es",
+    "lib/",
     "i18n/",
     "radar-icon.png",
     "aws-outputs.json",
