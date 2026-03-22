@@ -83,7 +83,7 @@ const startOAuthFlow = (cognitoDomain, region, clientId, onSuccess, onError) => 
       return
     }
     exchangeCodeForTokens(cognitoDomain, region, clientId, code)
-      .then(({ idToken, email }) => _oauthCallbacks?.onSuccess(idToken, email))
+      .then(({ idToken, refreshToken, email }) => _oauthCallbacks?.onSuccess(idToken, refreshToken, email))
       .catch((e) => _oauthCallbacks?.onError(e.message))
   })
 
@@ -114,9 +114,40 @@ const exchangeCodeForTokens = async (cognitoDomain, region, clientId, code) => {
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
   )
   const idToken = res.data.id_token
+  const refreshToken = res.data.refresh_token || ''
   const payload = JSON.parse(atob(idToken.split('.')[1]))
   const email = payload.email || payload['cognito:username'] || ''
-  return { idToken, email }
+  return { idToken, refreshToken, email }
+}
+
+const refreshIdToken = async (cognitoDomain, region, clientId, refreshToken) => {
+  const res = await axios.post(
+    `https://${cognitoDomain}.auth.${region}.amazoncognito.com/oauth2/token`,
+    new URLSearchParams({ grant_type: 'refresh_token', client_id: clientId, refresh_token: refreshToken }).toString(),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+  )
+  return res.data.id_token
+}
+
+// JWT が期限切れなら自動リフレッシュし、新しい JWT を返す
+const ensureValidJwt = async () => {
+  let jwt = getConfig('awsJwt', '')
+  if (!jwt) return null
+  if (!isJwtExpired(jwt)) return jwt
+  const refreshToken = getConfig('awsRefreshToken', '')
+  if (!refreshToken) return null
+  try {
+    const cognitoDomain = getConfig('awsCognitoDomain', '')
+    const apiUrl = getConfig('awsApiUrl', '')
+    const clientId = getConfig('awsClientId', '')
+    const region = extractRegion(apiUrl)
+    const newJwt = await refreshIdToken(cognitoDomain, region, clientId, refreshToken)
+    setConfig('awsJwt', newJwt)
+    return newJwt
+  } catch (e) {
+    console.error(`[${PLUGIN_KEY}] JWT リフレッシュエラー:`, e.message)
+    return null
+  }
 }
 
 // ---- タイマー同期 ----
@@ -261,10 +292,10 @@ function scheduleDirectNotifications(timers) {
 }
 
 // AWS へタイマー状態を同期する
-function syncTimers(timers) {
+async function syncTimers(timers) {
   if (getConfig('deliveryMode', 'direct') !== 'aws') return
   const awsApiUrl = getConfig('awsApiUrl', '')
-  const jwt = getConfig('awsJwt', '')
+  const jwt = await ensureValidJwt()
   if (!awsApiUrl || !jwt) return
 
   const enabled = {
@@ -546,7 +577,7 @@ const AwsManagedLogin = ({ apiUrl, clientId, cognitoDomain, jwt, savedEmail, onL
     setWaiting(true)
     setStatusMsg(t('awsLoginWaiting'))
     startOAuthFlow(cognitoDomain, region, clientId,
-      (jwt, email) => { onLoginSuccess(jwt, email); setWaiting(false); setStatusMsg('') },
+      (jwt, refreshToken, email) => { onLoginSuccess(jwt, refreshToken, email); setWaiting(false); setStatusMsg('') },
       (errMsg) => { setWaiting(false); setStatusMsg(errMsg) },
     )
   }
@@ -778,10 +809,11 @@ export const reactClass = () => {
     setConfig('timerConstruction', val)
   }, [])
 
-  const handleLoginSuccess = useCallback((jwt, email) => {
+  const handleLoginSuccess = useCallback((jwt, refreshToken, email) => {
     setAwsJwt(jwt)
     setAwsSavedEmail(email)
     setConfig('awsJwt', jwt)
+    setConfig('awsRefreshToken', refreshToken)
     setConfig('awsSavedEmail', email)
   }, [])
 
@@ -797,6 +829,7 @@ export const reactClass = () => {
     }
     setAwsJwt(null)
     setConfig('awsJwt', '')
+    setConfig('awsRefreshToken', '')
   }, [])
 
   const handleSave = useCallback(() => {
