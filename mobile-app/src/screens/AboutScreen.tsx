@@ -107,7 +107,7 @@ export default function AboutScreen({ onBack }: Props) {
 
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#0f0f1a' },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 56 },
+  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: (Constants.statusBarHeight ?? 0) + 12 },
   headerTitle:  { fontSize: 18, fontWeight: 'bold', color: '#fff' },
   backText:     { color: '#5865f2', fontSize: 14 },
   card:         { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e1e30', borderRadius: 12, padding: 16 },
