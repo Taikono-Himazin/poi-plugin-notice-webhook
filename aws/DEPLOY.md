@@ -90,7 +90,7 @@ npm install
 ### Bash (macOS / Linux / WSL / Git Bash)
 
 ```bash
-cd aws/scripts
+cd scripts
 
 ./deploy.sh \
   --profile poi-webhook \
