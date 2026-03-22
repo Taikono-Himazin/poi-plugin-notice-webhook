@@ -40,6 +40,7 @@ exports.handler = async (event) => {
   const body       = JSON.parse(event.body || '{}')
   const timers     = Array.isArray(body.timers) ? body.timers : []
   const enabled    = body.enabled ?? { expedition: true, repair: true, construction: true }
+  const notifyBeforeMinutes = Math.max(0, Math.min(60, parseInt(body.notifyBeforeMinutes, 10) || 1))
   const mobileOnly = body.mobileOnly === true
 
   if (!mobileOnly && !accountRes.Item?.webhookType) {
@@ -96,14 +97,14 @@ exports.handler = async (event) => {
         TableName: process.env.TIMERS_TABLE,
         Item: {
           userId, pk, type, slot, completesAt,
-          message: msgText,
+          message: msgText, notifyBeforeMinutes,
           ttl: Math.floor(completesAtMs / 1000) + 86400,
         },
       }))
     } else {
       const notificationId = crypto.randomUUID()
       const scheduleName   = safeScheduleName(userId, type, slot)
-      const deliverAt      = new Date(completesAtMs - 60 * 1000)
+      const deliverAt      = new Date(completesAtMs - notifyBeforeMinutes * 60 * 1000)
       const payload        = { message: msgText, type, title: TYPE_TITLES[type] ?? 'poi 通知' }
 
       await dynamo.send(new PutCommand({
@@ -118,7 +119,7 @@ exports.handler = async (event) => {
         TableName: process.env.TIMERS_TABLE,
         Item: {
           userId, pk, type, slot, completesAt,
-          message: payload.message, scheduleName, notificationId,
+          message: payload.message, notifyBeforeMinutes, scheduleName, notificationId,
           ttl: Math.floor(completesAtMs / 1000) + 86400,
         },
       }))

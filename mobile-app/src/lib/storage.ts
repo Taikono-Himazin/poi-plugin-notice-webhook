@@ -37,6 +37,7 @@ export type Timer = {
   slot:        number
   completesAt: string
   message:     string
+  notifyBeforeMinutes?: number
 }
 
 export type NotifySettings = {

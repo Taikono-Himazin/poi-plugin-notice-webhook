@@ -174,7 +174,8 @@ function scheduleDirectNotifications(timers) {
   for (const timer of timers) {
     const { type, slot, completesAt, message } = timer
     if (timerEnabled[type] === false) continue
-    const msLeft = new Date(completesAt).getTime() - Date.now() - 60 * 1000
+    const beforeMin = getConfig('notifyBeforeMinutes', 1)
+    const msLeft = new Date(completesAt).getTime() - Date.now() - beforeMin * 60 * 1000
     if (msLeft <= 0) continue
     const key = `${type}#${slot}`
     const id = setTimeout(() => {
@@ -202,7 +203,8 @@ async function syncTimers(timers) {
     construction: getConfig('timerConstruction', true),
   }
 
-  axios.put(`${awsApiUrl}/timers`, { timers, enabled }, {
+  const notifyBeforeMinutes = getConfig('notifyBeforeMinutes', 1)
+  axios.put(`${awsApiUrl}/timers`, { timers, enabled, notifyBeforeMinutes }, {
     headers: { Authorization: `Bearer ${jwt}` },
   }).catch((e) => { console.error(`[${PLUGIN_KEY}] タイマー同期エラー:`, e.message); reportError(e, { action: 'syncTimers' }) })
 }
@@ -579,6 +581,30 @@ export const reactClass = () => {
     const saved = getConfig('awsJwt', '')
     return (saved && !isJwtExpired(saved)) ? saved : null
   })
+
+  // 起動時: JWT が期限切れでもリフレッシュトークンがあれば自動リフレッシュ
+  useEffect(() => {
+    if (awsJwt) return // 既に有効な JWT がある
+    const refreshToken = getConfig('awsRefreshToken', '')
+    if (!refreshToken) return
+    const cognitoDomain = getConfig('awsCognitoDomain', '')
+    const apiUrl = getConfig('awsApiUrl', '')
+    const clientId = getConfig('awsClientId', '')
+    if (!cognitoDomain || !clientId) return
+    const region = extractRegion(apiUrl)
+    refreshIdToken(cognitoDomain, region, clientId, refreshToken)
+      .then((newJwt) => {
+        setAwsJwt(newJwt)
+        setConfig('awsJwt', newJwt)
+      })
+      .catch((e) => {
+        console.error(`[${PLUGIN_KEY}] 起動時 JWT リフレッシュエラー:`, e.message)
+        // リフレッシュトークンが無効化されている場合はクリア
+        setConfig('awsJwt', '')
+        setConfig('awsRefreshToken', '')
+      })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [awsSavedEmail, setAwsSavedEmail] = useState(() => getConfig('awsSavedEmail', ''))
   const [saved, setSaved] = useState(false)
   const [testing, setTesting] = useState(false)
@@ -590,6 +616,7 @@ export const reactClass = () => {
   const [timerExpedition, setTimerExpedition] = useState(() => getConfig('timerExpedition', true))
   const [timerRepair, setTimerRepair] = useState(() => getConfig('timerRepair', true))
   const [timerConstruction, setTimerConstruction] = useState(() => getConfig('timerConstruction', true))
+  const [notifyBeforeMinutes, setNotifyBeforeMinutes] = useState(() => getConfig('notifyBeforeMinutes', 1))
   // 起動時: aws-outputs.json から API URL・クライアント ID・Cognito ドメインを読み込む
   // ファイルが存在する場合は常に最新値で上書きする（再デプロイ後に自動反映）
   useEffect(() => {
@@ -667,6 +694,12 @@ export const reactClass = () => {
     const val = e.target.checked
     setTimerConstruction(val)
     setConfig('timerConstruction', val)
+  }, [])
+
+  const handleNotifyBeforeMinutesChange = useCallback((e) => {
+    const val = Math.max(0, Math.min(60, parseInt(e.target.value, 10) || 0))
+    setNotifyBeforeMinutes(val)
+    setConfig('notifyBeforeMinutes', val)
   }, [])
 
   const handleLoginSuccess = useCallback((jwt, refreshToken, email) => {
@@ -771,6 +804,15 @@ export const reactClass = () => {
           <Checkbox checked={timerConstruction} onChange={handleTimerConstructionChange} inline>
             {t('timerConstruction')}
           </Checkbox>
+        </div>
+        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: '12px' }}>{t('notifyBeforeLabel')}</span>
+          <FormControl
+            type="number" min={0} max={60} value={notifyBeforeMinutes}
+            onChange={handleNotifyBeforeMinutesChange}
+            style={{ width: 60, display: 'inline-block' }}
+          />
+          <span style={{ fontSize: '12px' }}>{t('notifyBeforeUnit')}</span>
         </div>
       </FormGroup>
 

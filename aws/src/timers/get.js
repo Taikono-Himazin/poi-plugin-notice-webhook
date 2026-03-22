@@ -29,6 +29,7 @@ exports.handler = async (event) => {
       slot:        item.slot,
       completesAt: item.completesAt,
       message:     item.message,
+      notifyBeforeMinutes: item.notifyBeforeMinutes ?? 1,
     }))
 
   return ok({ timers })

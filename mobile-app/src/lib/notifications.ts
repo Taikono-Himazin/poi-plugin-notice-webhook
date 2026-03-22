@@ -37,7 +37,11 @@ export async function scheduleTimerNotifications(
   for (const timer of timers) {
     if (!settings[timer.type as keyof NotifySettings]) continue
 
-    const triggerMs = new Date(timer.completesAt).getTime()
+    const completesAtMs = new Date(timer.completesAt).getTime()
+    if (completesAtMs <= now) continue
+
+    const beforeMs = (timer.notifyBeforeMinutes ?? 1) * 60 * 1000
+    const triggerMs = completesAtMs - beforeMs
     if (triggerMs <= now) continue
 
     await Notifications.scheduleNotificationAsync({

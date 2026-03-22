@@ -47,5 +47,7 @@
   "forceSyncing": "Syncing...",
   "forceSyncDone": "Synced",
   "supportNote":"Running the cloud server has costs. If you like, please consider supporting the project.",
+  "notifyBeforeLabel": "Notify",
+  "notifyBeforeUnit": "min before completion",
   "supportLink": "Support (GitHub Sponsors)"
 }
