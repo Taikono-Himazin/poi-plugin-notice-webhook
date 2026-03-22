@@ -159,6 +159,16 @@ export class PoiWebhookStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     })
 
+    // エラー収集テーブル（source: PK, timestamp: SK）
+    const errorsTable = new dynamodb.Table(this, 'ErrorsTable', {
+      tableName: 'poi-webhook-errors',
+      partitionKey: { name: 'source', type: dynamodb.AttributeType.STRING },
+      sortKey:      { name: 'timestamp', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'ttl',
+      removalPolicy: RemovalPolicy.RETAIN,
+    })
+
     // 通知統計テーブル（userId: PK, month: SK = "YYYY-MM"）
     // 各月の通知回数を type 別にカウント
     const statsTable = new dynamodb.Table(this, 'StatsTable', {
@@ -180,6 +190,7 @@ export class PoiWebhookStack extends Stack {
       NOTIFICATIONS_TABLE:  notificationsTable.tableName,
       TIMERS_TABLE:         timersTable.tableName,
       STATS_TABLE:          statsTable.tableName,
+      ERRORS_TABLE:         errorsTable.tableName,
       USER_POOL_ID:         userPool.userPoolId,
       USER_POOL_CLIENT_ID:  userPoolClientCfn.ref,
     }
@@ -272,6 +283,18 @@ export class PoiWebhookStack extends Stack {
     const timerGetFn = fn('TimerGetFunction', 'timers/get.js')
     timersTable.grantReadData(timerGetFn)
 
+    // エラー収集（認証不要）
+    const errorReportFn = fn('ErrorReportFunction', 'errors/report.js')
+    errorReportFn.node.addDependency(errorsTable)
+    errorsTable.grantWriteData(errorReportFn)
+
+    // エラー一覧（Cognito 認証）
+    const errorListFn = fn('ErrorListFunction', 'errors/list.js')
+    errorsTable.grantReadData(errorListFn)
+
+    // エラーダッシュボード（HTML を返す、認証不要）
+    const errorDashboardFn = fn('ErrorDashboardFunction', 'errors/dashboard.js')
+
     // ----------------------------------------------------------------
     // API Gateway
     // ----------------------------------------------------------------
@@ -317,6 +340,40 @@ export class PoiWebhookStack extends Stack {
     tokensRes.addMethod('POST', lam(tokenCreateFn), withAuth)
     tokensRes.addMethod('GET',  lam(tokenListFn),   withAuth)
     tokensRes.addResource('{token}').addMethod('DELETE', lam(tokenDeleteFn), withAuth)
+
+    // エラー収集・閲覧
+    const errorsRes = api.root.addResource('errors')
+    errorsRes.addMethod('POST', lam(errorReportFn))
+    errorsRes.addMethod('GET',  lam(errorListFn), withAuth)
+
+    // エラーダッシュボード
+    const dashboardRes = api.root.addResource('dashboard')
+    dashboardRes.addMethod('GET', lam(errorDashboardFn))
+
+    // ダッシュボード用: api.url はデプロイステージへの参照を含み循環依存になるため、
+    // restApiId から URL を組み立てて依存を断つ
+    const apiBaseUrl = Fn.join('', [
+      'https://', api.restApiId, '.execute-api.', this.region, '.amazonaws.com/v1/',
+    ])
+    const dashboardUrl = Fn.join('', [
+      'https://', api.restApiId, '.execute-api.', this.region, '.amazonaws.com/v1/dashboard',
+    ])
+
+    // ダッシュボード用コールバック URL を Cognito に追加
+    userPoolClientCfn.addPropertyOverride('CallbackURLs', [
+      'http://localhost:17890/callback',
+      'poi-notice://auth',
+      dashboardUrl,
+    ])
+    userPoolClientCfn.addPropertyOverride('LogoutURLs', [
+      'http://localhost:17890/logout',
+      'poi-notice://logout',
+      dashboardUrl,
+    ])
+
+    // ダッシュボード Lambda に Cognito 情報を渡す
+    errorDashboardFn.addEnvironment('API_URL', apiBaseUrl)
+    errorDashboardFn.addEnvironment('COGNITO_DOMAIN', userPoolDomain.domainName)
 
     // ----------------------------------------------------------------
     // Outputs

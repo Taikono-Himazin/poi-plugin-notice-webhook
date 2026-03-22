@@ -5,6 +5,7 @@ import {
 } from 'react-native'
 import { Storage, AuthConfig, loadConfigFromOutputs } from '../lib/storage'
 import { login } from '../lib/auth'
+import { reportError } from '../lib/reportError'
 
 type Props = {
   onLogin: (email: string) => void
@@ -42,6 +43,7 @@ export default function LoginScreen({ onLogin }: Props) {
       const { email } = await login(config)
       onLogin(email)
     } catch (e: unknown) {
+      reportError(e, { action: 'login' })
       const msg = e instanceof Error ? e.message : String(e)
       Alert.alert('ログイン失敗', msg)
     } finally {

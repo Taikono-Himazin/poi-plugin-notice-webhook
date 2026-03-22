@@ -45,6 +45,15 @@ export default function AboutScreen({ onBack }: Props) {
           <Text style={[styles.bodyText, { marginTop: 8 }]}>
             © 2025 taikonohimazin
           </Text>
+          <TouchableOpacity
+            style={{ marginTop: 12 }}
+            onPress={() => Linking.openURL('https://www.pixiv.net/artworks/39534914')}
+          >
+            <Text style={styles.bodyText}>
+              アイコン画像出典:{' '}
+              <Text style={{ color: '#5865f2' }}>pixiv - 39534914</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -98,7 +107,7 @@ export default function AboutScreen({ onBack }: Props) {
 
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: '#0f0f1a' },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 56 },
+  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: (Constants.statusBarHeight ?? 0) + 12 },
   headerTitle:  { fontSize: 18, fontWeight: 'bold', color: '#fff' },
   backText:     { color: '#5865f2', fontSize: 14 },
   card:         { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e1e30', borderRadius: 12, padding: 16 },

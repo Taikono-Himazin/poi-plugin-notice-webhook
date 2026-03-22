@@ -3,10 +3,13 @@ import {
   View, Text, ScrollView, TouchableOpacity, Switch,
   StyleSheet, RefreshControl, Alert,
 } from 'react-native'
+import Constants from 'expo-constants'
 import { Storage, Timer, NotifySettings } from '../lib/storage'
 import AboutScreen from './AboutScreen'
 import { fetchTimers } from '../lib/api'
+import { refreshTokens } from '../lib/auth'
 import { scheduleTimerNotifications, getScheduledCount } from '../lib/notifications'
+import { reportError } from '../lib/reportError'
 
 type Props = {
   onLogout: () => void
@@ -65,12 +68,20 @@ export default function HomeScreen({ onLogout }: Props) {
 
   useEffect(() => { loadFromCache() }, [loadFromCache])
 
-  const sync = useCallback(async () => {
+  const sync = useCallback(async (silent = false) => {
     setSyncing(true)
     try {
-      const [jwt, config] = await Promise.all([Storage.getJwt(), Storage.getAuthConfig()])
-      if (!jwt || !config) {
-        Alert.alert('エラー', 'ログインが必要です')
+      let [jwt, config] = await Promise.all([Storage.getJwt(), Storage.getAuthConfig()])
+      if (!config) {
+        if (!silent) Alert.alert('エラー', 'ログインが必要です')
+        return
+      }
+      const isValid = await Storage.isJwtValid()
+      if (!isValid) {
+        jwt = await refreshTokens()
+      }
+      if (!jwt) {
+        if (!silent) Alert.alert('エラー', 'ログインが必要です')
         return
       }
 
@@ -90,12 +101,21 @@ export default function HomeScreen({ onLogout }: Props) {
       setLastSync(Date.now())
       setScheduledCount(sc)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      Alert.alert('同期失敗', msg)
+      reportError(e, { action: 'sync' })
+      if (!silent) {
+        const msg = e instanceof Error ? e.message : String(e)
+        Alert.alert('同期失敗', msg)
+      }
     } finally {
       setSyncing(false)
     }
   }, [])
+
+  // フォアグラウンド時に10分おきに自動同期
+  useEffect(() => {
+    const id = setInterval(() => sync(true), 10 * 60 * 1_000)
+    return () => clearInterval(id)
+  }, [sync])
 
 
   const toggleSetting = useCallback(async (key: keyof NotifySettings, value: boolean) => {
@@ -128,7 +148,7 @@ export default function HomeScreen({ onLogout }: Props) {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={<RefreshControl refreshing={syncing} onRefresh={sync} tintColor="#5865f2" />}
+      refreshControl={<RefreshControl refreshing={syncing} onRefresh={() => sync()} tintColor="#5865f2" />}
     >
       {/* ヘッダー */}
       <View style={styles.header}>
@@ -210,7 +230,7 @@ export default function HomeScreen({ onLogout }: Props) {
 
 const styles = StyleSheet.create({
   container:      { flex: 1, backgroundColor: '#0f0f1a' },
-  header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 56 },
+  header:         { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: (Constants.statusBarHeight ?? 0) + 12 },
   headerTitle:    { fontSize: 22, fontWeight: 'bold', color: '#fff' },
   logoutText:     { color: '#666', fontSize: 14 },
   statusCard:     { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e1e30', borderRadius: 12, padding: 16 },

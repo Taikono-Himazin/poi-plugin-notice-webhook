@@ -4,6 +4,9 @@ import axios from 'axios'
 import fs from 'fs'
 import http from 'http'
 import pathModule from 'path'
+import { isJwtExpired, extractRegion } from './lib/jwt'
+import { NOTIFY_COLORS, getColor, buildGenericPayload, buildDiscordPayload, buildSlackPayload } from './lib/payloads'
+import { extractTimersFromBody as _extractTimersFromBody } from './lib/timers'
 
 const PLUGIN_KEY = 'poi-plugin-notice-webhook'
 
@@ -40,21 +43,6 @@ const loadAwsOutputs = () => {
   }
 }
 
-// JWT の有効期限チェック
-const isJwtExpired = (token) => {
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
-    return payload.exp * 1000 < Date.now()
-  } catch (_) {
-    return true
-  }
-}
-
-// ---- AWS ヘルパー ----
-const extractRegion = (apiUrl) => {
-  const m = (apiUrl || '').match(/execute-api\.([^.]+)\.amazonaws\.com/)
-  return m ? m[1] : 'ap-northeast-1'
-}
 
 // ---- Cognito Managed Login OAuth フロー ----
 const OAUTH_PORT = 17890
@@ -83,7 +71,7 @@ const startOAuthFlow = (cognitoDomain, region, clientId, onSuccess, onError) => 
       return
     }
     exchangeCodeForTokens(cognitoDomain, region, clientId, code)
-      .then(({ idToken, email }) => _oauthCallbacks?.onSuccess(idToken, email))
+      .then(({ idToken, refreshToken, email }) => _oauthCallbacks?.onSuccess(idToken, refreshToken, email))
       .catch((e) => _oauthCallbacks?.onError(e.message))
   })
 
@@ -114,107 +102,48 @@ const exchangeCodeForTokens = async (cognitoDomain, region, clientId, code) => {
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
   )
   const idToken = res.data.id_token
+  const refreshToken = res.data.refresh_token || ''
   const payload = JSON.parse(atob(idToken.split('.')[1]))
   const email = payload.email || payload['cognito:username'] || ''
-  return { idToken, email }
+  return { idToken, refreshToken, email }
+}
+
+const refreshIdToken = async (cognitoDomain, region, clientId, refreshToken) => {
+  const res = await axios.post(
+    `https://${cognitoDomain}.auth.${region}.amazoncognito.com/oauth2/token`,
+    new URLSearchParams({ grant_type: 'refresh_token', client_id: clientId, refresh_token: refreshToken }).toString(),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+  )
+  return res.data.id_token
+}
+
+// JWT が期限切れなら自動リフレッシュし、新しい JWT を返す
+const ensureValidJwt = async () => {
+  let jwt = getConfig('awsJwt', '')
+  if (!jwt) return null
+  if (!isJwtExpired(jwt)) return jwt
+  const refreshToken = getConfig('awsRefreshToken', '')
+  if (!refreshToken) return null
+  try {
+    const cognitoDomain = getConfig('awsCognitoDomain', '')
+    const apiUrl = getConfig('awsApiUrl', '')
+    const clientId = getConfig('awsClientId', '')
+    const region = extractRegion(apiUrl)
+    const newJwt = await refreshIdToken(cognitoDomain, region, clientId, refreshToken)
+    setConfig('awsJwt', newJwt)
+    return newJwt
+  } catch (e) {
+    console.error(`[${PLUGIN_KEY}] JWT リフレッシュエラー:`, e.message)
+    return null
+  }
 }
 
 // ---- タイマー同期 ----
 // game.response の detail 構造: { method, path, body, postBody, time }
 
-// ゲームデータからタイマーリストを生成する
+// lib/timers.js に window.getStore を注入するラッパー
 function extractTimersFromBody(path, body) {
-  const timers = []
-  const now = Date.now()
-
-  // 遠征: deck の api_mission[0]=1(出撃中), api_mission[2]=完了時刻(ms)
-  const decks = (path === '/kcsapi/api_port/port')
-    ? (body.api_deck_port || [])
-    : (path === '/kcsapi/api_get_member/deck') ? (body || []) : []
-  for (const deck of decks) {
-    const fleetId = deck.api_id
-    if (fleetId < 2 || fleetId > 4) continue // 第1艦隊は遠征不可
-    const mission = deck.api_mission
-    if (!mission || mission[0] !== 1 || !(mission[2] > 0)) continue
-    const completesAt = mission[2] // Unix ms
-    if (completesAt <= now) continue
-
-    // 遠征名をマスターデータから取得 (api_mission[1] が遠征 ID)
-    let missionName = ''
-    try {
-      const missionId = mission[1]
-      const missions = window.getStore?.('const.$missions')
-      missionName = missions?.[missionId]?.api_name || ''
-    } catch (_) { }
-
-    timers.push({
-      type: 'expedition',
-      slot: fleetId,
-      completesAt: new Date(completesAt).toISOString(),
-      message: missionName
-        ? `第${fleetId}艦隊の遠征が完了します（${missionName}）`
-        : `第${fleetId}艦隊の遠征が完了します`,
-    })
-  }
-
-  // 入渠: ndock の api_ship_id > 0, api_complete_time > 0
-  const ndock = (path === '/kcsapi/api_port/port')
-    ? (body.api_ndock || [])
-    : (path === '/kcsapi/api_get_member/ndock') ? (body || []) : []
-  for (const dock of ndock) {
-    if (!(dock.api_ship_id > 0) || !(dock.api_complete_time > 0)) continue
-    const completesAt = dock.api_complete_time
-    if (completesAt <= now) continue
-
-    // 艦名をストアから取得（info.ships は api_id でインデックス済み）
-    let shipName = ''
-    try {
-      const ships = window.getStore?.('info.ships')
-      const shipInstance = ships?.[dock.api_ship_id]
-      if (shipInstance) {
-        const masterShips = window.getStore?.('const.$ships')
-        shipName = masterShips?.[shipInstance.api_ship_id]?.api_name || ''
-      }
-    } catch (_) { }
-
-    timers.push({
-      type: 'repair',
-      slot: dock.api_id,
-      completesAt: new Date(completesAt).toISOString(),
-      message: shipName
-        ? `${shipName}の入渠が完了します（ドック${dock.api_id}）`
-        : `入渠が完了します（ドック${dock.api_id}）`,
-    })
-  }
-
-  // 建造: kdock の api_ship_id !== 0 && !== -1, api_complete_time > 0
-  const kdock = (path === '/kcsapi/api_port/port')
-    ? (body.api_kdock || [])
-    : (path === '/kcsapi/api_get_member/kdock') ? (body || []) : []
-  for (const dock of kdock) {
-    if (dock.api_ship_id === 0 || dock.api_ship_id === -1) continue
-    if (!(dock.api_complete_time > 0)) continue
-    const completesAt = dock.api_complete_time
-    if (completesAt <= now) continue
-
-    // 建造艦名をマスターデータから取得（kdock.api_ship_id はマスター艦種 ID）
-    let shipName = ''
-    try {
-      const masterShips = window.getStore?.('const.$ships')
-      shipName = masterShips?.[dock.api_ship_id]?.api_name || ''
-    } catch (_) { }
-
-    timers.push({
-      type: 'construction',
-      slot: dock.api_id,
-      completesAt: new Date(completesAt).toISOString(),
-      message: shipName
-        ? `${shipName}の建造が完了します（ドック${dock.api_id}）`
-        : `建造が完了します（ドック${dock.api_id}）`,
-    })
-  }
-
-  return timers
+  return _extractTimersFromBody(path, body, window.getStore)
 }
 
 // デバウンス用タイマー
@@ -261,10 +190,10 @@ function scheduleDirectNotifications(timers) {
 }
 
 // AWS へタイマー状態を同期する
-function syncTimers(timers) {
+async function syncTimers(timers) {
   if (getConfig('deliveryMode', 'direct') !== 'aws') return
   const awsApiUrl = getConfig('awsApiUrl', '')
-  const jwt = getConfig('awsJwt', '')
+  const jwt = await ensureValidJwt()
   if (!awsApiUrl || !jwt) return
 
   const enabled = {
@@ -275,7 +204,7 @@ function syncTimers(timers) {
 
   axios.put(`${awsApiUrl}/timers`, { timers, enabled }, {
     headers: { Authorization: `Bearer ${jwt}` },
-  }).catch((e) => console.error(`[${PLUGIN_KEY}] タイマー同期エラー:`, e.message))
+  }).catch((e) => { console.error(`[${PLUGIN_KEY}] タイマー同期エラー:`, e.message); reportError(e, { action: 'syncTimers' }) })
 }
 
 // ゲームイベントハンドラ
@@ -346,46 +275,27 @@ function syncFromStore() {
     else scheduleDirectNotifications(timers)
   } catch (e) {
     console.error(`[${PLUGIN_KEY}] store からのタイマー取得エラー:`, e.message)
+    reportError(e, { action: 'syncFromStore' })
   }
 }
 
-// ---- 通知タイプ別カラー ----
-const NOTIFY_COLORS = {
-  expedition: { hex: '#5865f2', int: 0x5865f2 },
-  repair: { hex: '#57f287', int: 0x57f287 },
-  construction: { hex: '#fee75c', int: 0xfee75c },
-  default: { hex: '#aaaaaa', int: 0xaaaaaa },
+// ---- エラー報告 ----
+const _reportedErrors = new Set()
+function reportError(err, ctx = {}) {
+  const apiUrl = getConfig('awsApiUrl', '')
+  if (!apiUrl) return
+  // 同じメッセージの重複送信を抑制（セッション内）
+  const key = (err.message || String(err)).slice(0, 200)
+  if (_reportedErrors.has(key)) return
+  _reportedErrors.add(key)
+  axios.post(`${apiUrl}/errors`, {
+    source: 'poi-plugin',
+    level: 'error',
+    message: key,
+    stack: (err.stack || '').slice(0, 5000),
+    context: { pluginVersion: '1.0.2', ...ctx },
+  }).catch(() => {})
 }
-const getColor = (type) => NOTIFY_COLORS[type] ?? NOTIFY_COLORS.default
-
-// ---- ペイロード生成 ----
-const buildGenericPayload = (msg, options) => ({
-  message: msg,
-  type: options.type || 'default',
-  title: typeof options.title === 'string' ? options.title : '',
-  timestamp: new Date().toISOString(),
-})
-
-const buildDiscordPayload = (msg, options) => ({
-  username: 'poi 通知',
-  embeds: [{
-    title: typeof options.title === 'string' && options.title ? options.title : 'poi 通知',
-    description: msg,
-    color: getColor(options.type).int,
-    timestamp: new Date().toISOString(),
-    footer: { text: `poi · ${options.type || 'default'}` },
-  }],
-})
-
-const buildSlackPayload = (msg, options) => ({
-  attachments: [{
-    color: getColor(options.type).hex,
-    title: typeof options.title === 'string' && options.title ? options.title : 'poi 通知',
-    text: msg,
-    footer: `poi · ${options.type || 'default'}`,
-    ts: Math.floor(Date.now() / 1000),
-  }],
-})
 
 // ---- 送信処理 ----
 const sendGeneric = (url, msg, options) =>
@@ -527,7 +437,7 @@ const AwsManagedLogin = ({ apiUrl, clientId, cognitoDomain, jwt, savedEmail, onL
     setWaiting(true)
     setStatusMsg(t('awsLoginWaiting'))
     startOAuthFlow(cognitoDomain, region, clientId,
-      (jwt, email) => { onLoginSuccess(jwt, email); setWaiting(false); setStatusMsg('') },
+      (jwt, refreshToken, email) => { onLoginSuccess(jwt, refreshToken, email); setWaiting(false); setStatusMsg('') },
       (errMsg) => { setWaiting(false); setStatusMsg(errMsg) },
     )
   }
@@ -759,10 +669,11 @@ export const reactClass = () => {
     setConfig('timerConstruction', val)
   }, [])
 
-  const handleLoginSuccess = useCallback((jwt, email) => {
+  const handleLoginSuccess = useCallback((jwt, refreshToken, email) => {
     setAwsJwt(jwt)
     setAwsSavedEmail(email)
     setConfig('awsJwt', jwt)
+    setConfig('awsRefreshToken', refreshToken)
     setConfig('awsSavedEmail', email)
   }, [])
 
@@ -778,6 +689,7 @@ export const reactClass = () => {
     }
     setAwsJwt(null)
     setConfig('awsJwt', '')
+    setConfig('awsRefreshToken', '')
   }, [])
 
   const handleSave = useCallback(() => {
