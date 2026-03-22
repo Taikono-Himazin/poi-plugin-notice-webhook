@@ -31,7 +31,7 @@ Google アカウントでのサインインを有効にする場合：
 ## 2. デプロイ
 
 ```bash
-cd aws/scripts
+cd scripts
 ./deploy.sh --profile <AWS_PROFILE> --region ap-northeast-1
 ```
 
@@ -96,6 +96,6 @@ EventBridge Scheduler
 設定を変更した場合は同じコマンドで再デプロイできます。
 
 ```bash
-cd aws/scripts
+cd scripts
 ./deploy.sh --profile <AWS_PROFILE> --region ap-northeast-1 --skip-bootstrap
 ```
