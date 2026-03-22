@@ -76,30 +76,3 @@ jobs:
         with:
           name: mobile-coverage
           path: mobile-app/coverage/
-
-  coverage-badge:
-    name: Update Coverage Badge
-    needs: aws-lambda-tests
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: aws-coverage
-          path: coverage
-      - name: Extract coverage percentage
-        id: coverage
-        run: |
-          COVERAGE=$(node -e "const c=require('./coverage/coverage-summary.json');console.log(c.total.statements.pct)")
-          echo "pct=$COVERAGE" >> "$GITHUB_OUTPUT"
-      - name: Create Gist Badge
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: ${{ vars.COVERAGE_GIST_ID }}
-          filename: coverage.json
-          label: coverage
-          message: ${{ steps.coverage.outputs.pct }}%
-          valColorRange: ${{ steps.coverage.outputs.pct }}
-          minColorRange: 50
-          maxColorRange: 100
