@@ -1,6 +1,6 @@
 {
   "name": "poi-plugin-notice-webhook",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "艦これ専ブラのpoiの通知をwebhookに対応させる",
   "main": "index.es",
   "scripts": {
@@ -12,6 +12,7 @@
   },
   "files": [
     "index.es",
+    "lib/",
     "i18n/",
     "radar-icon.png",
     "aws-outputs.json",
