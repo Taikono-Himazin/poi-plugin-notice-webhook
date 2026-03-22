@@ -293,7 +293,7 @@ function reportError(err, ctx = {}) {
     level: 'error',
     message: key,
     stack: (err.stack || '').slice(0, 5000),
-    context: { pluginVersion: '1.0.2', ...ctx },
+    context: { pluginVersion: '1.0.3', ...ctx },
   }).catch(() => {})
 }
 
