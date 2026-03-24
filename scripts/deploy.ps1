@@ -22,6 +22,7 @@
     .\deploy.ps1 -Profile myprofile -Region ap-northeast-1
     .\deploy.ps1 -Profile prod -Region ap-northeast-1 -SkipBootstrap
     # Google ログインのみにする場合は、対話プロンプトで true を入力
+    # Apple Sign In を有効にするには Apple Developer の資格情報を対話プロンプトで入力
 #>
 
 param(
@@ -176,11 +177,34 @@ if (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) {
     Write-Warn "Google ログインをスキップしました。後から再デプロイして追加できます。"
 }
 
+# -----------------------------------------------------------------------------
+# Apple Sign In 設定（任意）
+# -----------------------------------------------------------------------------
+Write-Host "`n=== Apple Sign In 設定（任意）===" -ForegroundColor White -BackgroundColor DarkGray
+Write-Info "Sign in with Apple を有効にするには Apple Developer の資格情報を設定してください。"
+Write-Info "不要な場合は Enter でスキップします。"
+
+$AppleServiceId = Get-Value "APPLE_SERVICE_ID" "Apple Services ID (空 Enter でスキップ)" "" $false $false
+if (-not [string]::IsNullOrWhiteSpace($AppleServiceId)) {
+    $AppleTeamId    = Get-Value "APPLE_TEAM_ID"     "Apple Team ID"    "" $false $true
+    $AppleKeyId     = Get-Value "APPLE_KEY_ID"      "Apple Key ID"     "" $false $true
+    $ApplePrivateKey = Get-Value "APPLE_PRIVATE_KEY" "Apple 秘密鍵 (.p8 の内容、改行は \n で入力)" "" $true $true
+} else {
+    $AppleTeamId    = ""
+    $AppleKeyId     = ""
+    $ApplePrivateKey = ""
+    Write-Warn "Apple Sign In をスキップしました。後から再デプロイして追加できます。"
+}
+
 # 設定を DPAPI 暗号化して保存
 $toSave = @{
     GOOGLE_CLIENT_ID     = ConvertTo-Dpapi $GoogleClientId
     GOOGLE_CLIENT_SECRET = ConvertTo-Dpapi $GoogleClientSecret
     GOOGLE_ONLY          = $GoogleOnly
+    APPLE_SERVICE_ID     = ConvertTo-Dpapi $AppleServiceId
+    APPLE_TEAM_ID        = ConvertTo-Dpapi $AppleTeamId
+    APPLE_KEY_ID         = ConvertTo-Dpapi $AppleKeyId
+    APPLE_PRIVATE_KEY    = ConvertTo-Dpapi $ApplePrivateKey
 }
 $toSave | ConvertTo-Json | Set-Content $ConfigFile -Encoding UTF8
 Write-Success "設定を暗号化して保存しました: $ConfigFile (DPAPI)"
@@ -225,7 +249,11 @@ if (-not $SkipBootstrap) {
 $CdkParams = @(
     "--parameters", "GoogleClientId=$GoogleClientId",
     "--parameters", "GoogleClientSecret=$GoogleClientSecret",
-    "--parameters", "GoogleOnly=$GoogleOnly"
+    "--parameters", "GoogleOnly=$GoogleOnly",
+    "--parameters", "AppleServiceId=$AppleServiceId",
+    "--parameters", "AppleTeamId=$AppleTeamId",
+    "--parameters", "AppleKeyId=$AppleKeyId",
+    "--parameters", "ApplePrivateKey=$ApplePrivateKey"
 )
 
 # -----------------------------------------------------------------------------

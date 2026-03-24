@@ -28,11 +28,37 @@ export class PoiWebhookStack extends Stack {
       description: 'true にすると Google ログインのみ許可（メール/パスワードによるサインアップ・サインインを無効化）',
     })
 
+    const appleServiceIdParam = new CfnParameter(this, 'AppleServiceId', {
+      type: 'String', default: '',
+      description: 'Apple Services ID（空白でスキップ）',
+    })
+    const appleTeamIdParam = new CfnParameter(this, 'AppleTeamId', {
+      type: 'String', default: '',
+      description: 'Apple Team ID',
+    })
+    const appleKeyIdParam = new CfnParameter(this, 'AppleKeyId', {
+      type: 'String', default: '',
+      description: 'Apple Key ID',
+    })
+    const applePrivateKeyParam = new CfnParameter(this, 'ApplePrivateKey', {
+      type: 'String', noEcho: true, default: '',
+      description: 'Apple 秘密鍵（.p8 の内容）',
+    })
+
     // ----------------------------------------------------------------
     // Cognito User Pool + Managed Login
     // ----------------------------------------------------------------
     const hasGoogle = new CfnCondition(this, 'HasGoogleCredentials', {
       expression: Fn.conditionNot(Fn.conditionEquals(googleClientIdParam.valueAsString, '')),
+    })
+    const hasApple = new CfnCondition(this, 'HasAppleCredentials', {
+      expression: Fn.conditionNot(Fn.conditionEquals(appleServiceIdParam.valueAsString, '')),
+    })
+    const hasGoogleAndApple = new CfnCondition(this, 'HasGoogleAndApple', {
+      expression: Fn.conditionAnd(
+        Fn.conditionNot(Fn.conditionEquals(googleClientIdParam.valueAsString, '')),
+        Fn.conditionNot(Fn.conditionEquals(appleServiceIdParam.valueAsString, '')),
+      ),
     })
     const isGoogleOnly = new CfnCondition(this, 'IsGoogleOnly', {
       expression: Fn.conditionAnd(
@@ -88,7 +114,23 @@ export class PoiWebhookStack extends Stack {
     })
     googleIdP.cfnOptions.condition = hasGoogle
 
-    // User Pool Client（L1 — Google を条件付きでサポート）
+    // Apple Identity Provider（条件付き）
+    const appleIdP = new cognito.CfnUserPoolIdentityProvider(this, 'AppleIdP', {
+      userPoolId: userPool.userPoolId,
+      providerName: 'SignInWithApple',
+      providerType: 'SignInWithApple',
+      providerDetails: {
+        client_id:        appleServiceIdParam.valueAsString,
+        team_id:          appleTeamIdParam.valueAsString,
+        key_id:           appleKeyIdParam.valueAsString,
+        private_key:      applePrivateKeyParam.valueAsString,
+        authorize_scopes: 'name email',
+      },
+      attributeMapping: { email: 'email', name: 'name' },
+    })
+    appleIdP.cfnOptions.condition = hasApple
+
+    // User Pool Client（L1 — Google/Apple を条件付きでサポート）
     const userPoolClientCfn = new cognito.CfnUserPoolClient(this, 'UserPoolClient', {
       userPoolId: userPool.userPoolId,
       clientName: 'WebClient',
@@ -109,8 +151,11 @@ export class PoiWebhookStack extends Stack {
     })
     userPoolClientCfn.addPropertyOverride(
       'SupportedIdentityProviders',
-      Fn.conditionIf('IsGoogleOnly', ['Google'],
-        Fn.conditionIf('HasGoogleCredentials', ['COGNITO', 'Google'], ['COGNITO'])),
+      Fn.conditionIf('IsGoogleOnly',
+        Fn.conditionIf('HasGoogleAndApple', ['Google', 'SignInWithApple'], ['Google']),
+        Fn.conditionIf('HasGoogleAndApple', ['COGNITO', 'Google', 'SignInWithApple'],
+          Fn.conditionIf('HasGoogleCredentials', ['COGNITO', 'Google'],
+            Fn.conditionIf('HasAppleCredentials', ['COGNITO', 'SignInWithApple'], ['COGNITO'])))),
     )
 
     // Managed Login ブランディング（Cognito デフォルトスタイルを使用）

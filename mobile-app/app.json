@@ -17,6 +17,7 @@
         "light": "./assets/icon.png",
         "dark": "./assets/icon-dark.png"
       },
+      "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": [
           "fetch"
@@ -33,6 +34,7 @@
       "package": "com.github.taikonohimazin.poinotice"
     },
     "plugins": [
+      "expo-apple-authentication",
       "expo-background-task",
       [
         "expo-notifications",
