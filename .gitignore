@@ -147,3 +147,6 @@ src/aws-outputs.json
 
 # AI アシスタント (Claude Code)
 .claude/
+
+*.p8
+google-service-account.json

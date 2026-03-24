@@ -7,6 +7,7 @@ import * as apigateway    from 'aws-cdk-lib/aws-apigateway'
 import * as cognito       from 'aws-cdk-lib/aws-cognito'
 import * as iam           from 'aws-cdk-lib/aws-iam'
 import * as path          from 'path'
+import * as fs            from 'fs'
 
 export class PoiWebhookStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -40,9 +41,9 @@ export class PoiWebhookStack extends Stack {
       type: 'String', default: '',
       description: 'Apple Key ID',
     })
-    const applePrivateKeyParam = new CfnParameter(this, 'ApplePrivateKey', {
-      type: 'String', noEcho: true, default: '',
-      description: 'Apple 秘密鍵（.p8 の内容）',
+    const applePrivateKeyPathParam = new CfnParameter(this, 'ApplePrivateKeyPath', {
+      type: 'String', default: '',
+      description: 'Apple 秘密鍵 .p8 ファイルパス（synth 時に読み込み）',
     })
 
     // ----------------------------------------------------------------
@@ -114,6 +115,16 @@ export class PoiWebhookStack extends Stack {
     })
     googleIdP.cfnOptions.condition = hasGoogle
 
+    // Apple 秘密鍵: CLIパラメータでは改行が壊れるため synth 時にファイルから読み込む
+    const appleKeyPath = applePrivateKeyPathParam.valueAsString
+    let applePrivateKeyContent = ''
+    // CfnParameter の valueAsString は synth 時にはトークンなので、
+    // CDK context 経由で実パスを取得してファイルを読む
+    const appleKeyPathFromContext = this.node.tryGetContext('applePrivateKeyPath') as string | undefined
+    if (appleKeyPathFromContext && fs.existsSync(appleKeyPathFromContext)) {
+      applePrivateKeyContent = fs.readFileSync(appleKeyPathFromContext, 'utf8').trim()
+    }
+
     // Apple Identity Provider（条件付き）
     const appleIdP = new cognito.CfnUserPoolIdentityProvider(this, 'AppleIdP', {
       userPoolId: userPool.userPoolId,
@@ -123,7 +134,7 @@ export class PoiWebhookStack extends Stack {
         client_id:        appleServiceIdParam.valueAsString,
         team_id:          appleTeamIdParam.valueAsString,
         key_id:           appleKeyIdParam.valueAsString,
-        private_key:      applePrivateKeyParam.valueAsString,
+        private_key:      applePrivateKeyContent,
         authorize_scopes: 'name email',
       },
       attributeMapping: { email: 'email', name: 'name' },
@@ -149,6 +160,10 @@ export class PoiWebhookStack extends Stack {
       refreshTokenValidity: 3650,
       tokenValidityUnits: { refreshToken: 'days' },
     })
+    // IdP が作成されてから Client を更新する（条件が false なら無視される）
+    userPoolClientCfn.addDependency(googleIdP)
+    userPoolClientCfn.addDependency(appleIdP)
+
     userPoolClientCfn.addPropertyOverride(
       'SupportedIdentityProviders',
       Fn.conditionIf('IsGoogleOnly',

@@ -12,6 +12,11 @@ const REDIRECT_URI = AuthSession.makeRedirectUri({
   path:   'auth',
 })
 
+const LOGOUT_URI = AuthSession.makeRedirectUri({
+  scheme: 'poi-notice',
+  path:   'logout',
+})
+
 function buildDiscovery(cognitoDomain: string, region: string) {
   const base = `https://${cognitoDomain}.auth.${region}.amazoncognito.com`
   return {
@@ -135,5 +140,17 @@ export async function refreshTokens(): Promise<string | null> {
 }
 
 export async function logout(): Promise<void> {
+  const config = await Storage.getAuthConfig()
   await Storage.clearJwt()
+
+  // Cognito のセッション（ブラウザ Cookie）を破棄する
+  // これをしないと次回ログイン時に自動ログインされてしまう
+  if (config) {
+    const region = extractRegion(config.apiUrl)
+    const logoutUrl =
+      `https://${config.cognitoDomain}.auth.${region}.amazoncognito.com/logout` +
+      `?client_id=${config.clientId}` +
+      `&logout_uri=${encodeURIComponent(LOGOUT_URI)}`
+    await WebBrowser.openAuthSessionAsync(logoutUrl, LOGOUT_URI).catch(() => {})
+  }
 }

@@ -138,7 +138,7 @@ Write-Info    "  IAM 識別子    : $AwsUser"
 # aws/ ディレクトリに移動
 # -----------------------------------------------------------------------------
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$AwsDir    = Split-Path -Parent $ScriptDir
+$AwsDir    = Join-Path (Split-Path -Parent $ScriptDir) "aws"
 Set-Location $AwsDir
 Write-Info "作業ディレクトリ: $AwsDir"
 
@@ -188,7 +188,12 @@ $AppleServiceId = Get-Value "APPLE_SERVICE_ID" "Apple Services ID (空 Enter で
 if (-not [string]::IsNullOrWhiteSpace($AppleServiceId)) {
     $AppleTeamId    = Get-Value "APPLE_TEAM_ID"     "Apple Team ID"    "" $false $true
     $AppleKeyId     = Get-Value "APPLE_KEY_ID"      "Apple Key ID"     "" $false $true
-    $ApplePrivateKey = Get-Value "APPLE_PRIVATE_KEY" "Apple 秘密鍵 (.p8 の内容、改行は \n で入力)" "" $true $true
+    $ApplePrivateKeyPath = Get-Value "APPLE_PRIVATE_KEY_PATH" "Apple 秘密鍵 (.p8 ファイルパス)" "" $false $true
+    if (-not (Test-Path $ApplePrivateKeyPath)) {
+        Fail ".p8 ファイルが見つかりません: $ApplePrivateKeyPath"
+    }
+    $ApplePrivateKey = Get-Content $ApplePrivateKeyPath -Raw
+    Write-Info ".p8 ファイルから秘密鍵を読み込みました"
 } else {
     $AppleTeamId    = ""
     $AppleKeyId     = ""
@@ -204,7 +209,7 @@ $toSave = @{
     APPLE_SERVICE_ID     = ConvertTo-Dpapi $AppleServiceId
     APPLE_TEAM_ID        = ConvertTo-Dpapi $AppleTeamId
     APPLE_KEY_ID         = ConvertTo-Dpapi $AppleKeyId
-    APPLE_PRIVATE_KEY    = ConvertTo-Dpapi $ApplePrivateKey
+    APPLE_PRIVATE_KEY_PATH = ConvertTo-Dpapi $ApplePrivateKeyPath
 }
 $toSave | ConvertTo-Json | Set-Content $ConfigFile -Encoding UTF8
 Write-Success "設定を暗号化して保存しました: $ConfigFile (DPAPI)"
@@ -253,8 +258,13 @@ $CdkParams = @(
     "--parameters", "AppleServiceId=$AppleServiceId",
     "--parameters", "AppleTeamId=$AppleTeamId",
     "--parameters", "AppleKeyId=$AppleKeyId",
-    "--parameters", "ApplePrivateKey=$ApplePrivateKey"
+    "--parameters", "ApplePrivateKeyPath=$ApplePrivateKeyPath"
 )
+# .p8 ファイルパスは CDK context で渡す（synth 時にファイルから読み込むため）
+if (-not [string]::IsNullOrWhiteSpace($ApplePrivateKeyPath)) {
+    $resolvedPath = (Resolve-Path $ApplePrivateKeyPath).Path
+    $CdkParams += @("-c", "applePrivateKeyPath=$resolvedPath")
+}
 
 # -----------------------------------------------------------------------------
 # CDK Synth / Deploy
