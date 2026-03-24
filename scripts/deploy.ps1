@@ -21,7 +21,7 @@
 .EXAMPLE
     .\deploy.ps1 -Profile myprofile -Region ap-northeast-1
     .\deploy.ps1 -Profile prod -Region ap-northeast-1 -SkipBootstrap
-    # Google ログインのみにする場合は、対話プロンプトで true を入力
+    # フェデレーションサインイン以外を禁止する場合は、対話プロンプトで true を入力
     # Apple Sign In を有効にするには Apple Developer の資格情報を対話プロンプトで入力
 #>
 
@@ -164,16 +164,8 @@ if (Test-Path $ConfigFile) {
 $GoogleClientId = Get-Value "GOOGLE_CLIENT_ID" "Google OAuth クライアント ID (空 Enter でスキップ)" "" $false $false
 if (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) {
     $GoogleClientSecret = Get-Value "GOOGLE_CLIENT_SECRET" "Google OAuth クライアントシークレット" "" $true $true
-
-    # Google ログインオンリーモード
-    if (-not $saved.ContainsKey("GOOGLE_ONLY")) { $saved["GOOGLE_ONLY"] = "" }
-    $prevGoogleOnly = if ($saved["GOOGLE_ONLY"] -eq "true") { "true" } else { "false" }
-    $googleOnlyInput = Read-Host -Prompt "Google ログインのみ許可する? (true/false) [$prevGoogleOnly] (Enter でそのまま)"
-    if ([string]::IsNullOrWhiteSpace($googleOnlyInput)) { $GoogleOnly = $prevGoogleOnly }
-    else { $GoogleOnly = $googleOnlyInput }
 } else {
     $GoogleClientSecret = ""
-    $GoogleOnly = "false"
     Write-Warn "Google ログインをスキップしました。後から再デプロイして追加できます。"
 }
 
@@ -199,6 +191,22 @@ if (-not [string]::IsNullOrWhiteSpace($AppleServiceId)) {
     $AppleKeyId     = ""
     $ApplePrivateKey = ""
     Write-Warn "Apple Sign In をスキップしました。後から再デプロイして追加できます。"
+}
+
+# -----------------------------------------------------------------------------
+# フェデレーションサインイン制限設定
+# -----------------------------------------------------------------------------
+$hasFederation = (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) -or (-not [string]::IsNullOrWhiteSpace($AppleServiceId))
+if ($hasFederation) {
+    Write-Host "`n=== サインイン制限設定 ===" -ForegroundColor White -BackgroundColor DarkGray
+    Write-Info "フェデレーションサインイン (Google / Apple) 以外のログインを禁止できます。"
+    if (-not $saved.ContainsKey("GOOGLE_ONLY")) { $saved["GOOGLE_ONLY"] = "" }
+    $prevFederationOnly = if ($saved["GOOGLE_ONLY"] -eq "true") { "true" } else { "false" }
+    $fedOnlyInput = Read-Host -Prompt "フェデレーションサインイン以外を許可しない? (true/false) [$prevFederationOnly] (Enter でそのまま)"
+    if ([string]::IsNullOrWhiteSpace($fedOnlyInput)) { $GoogleOnly = $prevFederationOnly }
+    else { $GoogleOnly = $fedOnlyInput }
+} else {
+    $GoogleOnly = "false"
 }
 
 # 設定を DPAPI 暗号化して保存
