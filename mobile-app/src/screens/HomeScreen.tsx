@@ -66,7 +66,10 @@ export default function HomeScreen({ onLogout }: Props) {
     setScheduledCount(sc)
   }, [])
 
-  useEffect(() => { loadFromCache() }, [loadFromCache])
+  // マウント時にキャッシュ表示 → サーバーから同期
+  useEffect(() => {
+    loadFromCache().then(() => sync(true))
+  }, [loadFromCache, sync])
 
   const sync = useCallback(async (silent = false) => {
     setSyncing(true)
