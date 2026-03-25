@@ -12,6 +12,11 @@ const REDIRECT_URI = AuthSession.makeRedirectUri({
   path:   'auth',
 })
 
+const LOGOUT_URI = AuthSession.makeRedirectUri({
+  scheme: 'poi-notice',
+  path:   'logout',
+})
+
 function buildDiscovery(cognitoDomain: string, region: string) {
   const base = `https://${cognitoDomain}.auth.${region}.amazoncognito.com`
   return {
@@ -49,7 +54,10 @@ function getDeviceLanguage(): string {
 
 export type LoginResult = { jwt: string; email: string }
 
-export async function login(config: AuthConfig): Promise<LoginResult> {
+async function performOAuthLogin(
+  config: AuthConfig,
+  extraParams: Record<string, string> = {},
+): Promise<LoginResult> {
   const region    = extractRegion(config.apiUrl)
   const discovery = buildDiscovery(config.cognitoDomain, region)
   const lang      = getDeviceLanguage()
@@ -60,7 +68,7 @@ export async function login(config: AuthConfig): Promise<LoginResult> {
     redirectUri:  REDIRECT_URI,
     responseType: AuthSession.ResponseType.Code,
     usePKCE:      true,
-    extraParams:  { lang },
+    extraParams:  { lang, ...extraParams },
   })
 
   const result = await request.promptAsync(discovery)
@@ -87,6 +95,19 @@ export async function login(config: AuthConfig): Promise<LoginResult> {
 
   await Storage.setJwt(idToken, exp, tokenResult.refreshToken ?? undefined)
   return { jwt: idToken, email }
+}
+
+export async function login(config: AuthConfig): Promise<LoginResult> {
+  return performOAuthLogin(config)
+}
+
+/**
+ * Sign in with Apple 経由で Cognito にログインする。
+ * Cognito の authorize エンドポイントに identity_provider=SignInWithApple を渡し、
+ * Apple のサインイン画面に直接リダイレクトする。
+ */
+export async function loginWithApple(config: AuthConfig): Promise<LoginResult> {
+  return performOAuthLogin(config, { identity_provider: 'SignInWithApple' })
 }
 
 /**
@@ -119,5 +140,17 @@ export async function refreshTokens(): Promise<string | null> {
 }
 
 export async function logout(): Promise<void> {
+  const config = await Storage.getAuthConfig()
   await Storage.clearJwt()
+
+  // Cognito のセッション（ブラウザ Cookie）を破棄する
+  // これをしないと次回ログイン時に自動ログインされてしまう
+  if (config) {
+    const region = extractRegion(config.apiUrl)
+    const logoutUrl =
+      `https://${config.cognitoDomain}.auth.${region}.amazoncognito.com/logout` +
+      `?client_id=${config.clientId}` +
+      `&logout_uri=${encodeURIComponent(LOGOUT_URI)}`
+    await WebBrowser.openAuthSessionAsync(logoutUrl, LOGOUT_URI).catch(() => {})
+  }
 }

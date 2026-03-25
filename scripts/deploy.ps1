@@ -21,7 +21,8 @@
 .EXAMPLE
     .\deploy.ps1 -Profile myprofile -Region ap-northeast-1
     .\deploy.ps1 -Profile prod -Region ap-northeast-1 -SkipBootstrap
-    # Google ログインのみにする場合は、対話プロンプトで true を入力
+    # フェデレーションサインイン以外を禁止する場合は、対話プロンプトで true を入力
+    # Apple Sign In を有効にするには Apple Developer の資格情報を対話プロンプトで入力
 #>
 
 param(
@@ -137,7 +138,7 @@ Write-Info    "  IAM 識別子    : $AwsUser"
 # aws/ ディレクトリに移動
 # -----------------------------------------------------------------------------
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$AwsDir    = Split-Path -Parent $ScriptDir
+$AwsDir    = Join-Path (Split-Path -Parent $ScriptDir) "aws"
 Set-Location $AwsDir
 Write-Info "作業ディレクトリ: $AwsDir"
 
@@ -163,17 +164,49 @@ if (Test-Path $ConfigFile) {
 $GoogleClientId = Get-Value "GOOGLE_CLIENT_ID" "Google OAuth クライアント ID (空 Enter でスキップ)" "" $false $false
 if (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) {
     $GoogleClientSecret = Get-Value "GOOGLE_CLIENT_SECRET" "Google OAuth クライアントシークレット" "" $true $true
-
-    # Google ログインオンリーモード
-    if (-not $saved.ContainsKey("GOOGLE_ONLY")) { $saved["GOOGLE_ONLY"] = "" }
-    $prevGoogleOnly = if ($saved["GOOGLE_ONLY"] -eq "true") { "true" } else { "false" }
-    $googleOnlyInput = Read-Host -Prompt "Google ログインのみ許可する? (true/false) [$prevGoogleOnly] (Enter でそのまま)"
-    if ([string]::IsNullOrWhiteSpace($googleOnlyInput)) { $GoogleOnly = $prevGoogleOnly }
-    else { $GoogleOnly = $googleOnlyInput }
 } else {
     $GoogleClientSecret = ""
-    $GoogleOnly = "false"
     Write-Warn "Google ログインをスキップしました。後から再デプロイして追加できます。"
+}
+
+# -----------------------------------------------------------------------------
+# Apple Sign In 設定（任意）
+# -----------------------------------------------------------------------------
+Write-Host "`n=== Apple Sign In 設定（任意）===" -ForegroundColor White -BackgroundColor DarkGray
+Write-Info "Sign in with Apple を有効にするには Apple Developer の資格情報を設定してください。"
+Write-Info "不要な場合は Enter でスキップします。"
+
+$AppleServiceId = Get-Value "APPLE_SERVICE_ID" "Apple Services ID (空 Enter でスキップ)" "" $false $false
+if (-not [string]::IsNullOrWhiteSpace($AppleServiceId)) {
+    $AppleTeamId    = Get-Value "APPLE_TEAM_ID"     "Apple Team ID"    "" $false $true
+    $AppleKeyId     = Get-Value "APPLE_KEY_ID"      "Apple Key ID"     "" $false $true
+    $ApplePrivateKeyPath = Get-Value "APPLE_PRIVATE_KEY_PATH" "Apple 秘密鍵 (.p8 ファイルパス)" "" $false $true
+    if (-not (Test-Path $ApplePrivateKeyPath)) {
+        Fail ".p8 ファイルが見つかりません: $ApplePrivateKeyPath"
+    }
+    $ApplePrivateKey = Get-Content $ApplePrivateKeyPath -Raw
+    Write-Info ".p8 ファイルから秘密鍵を読み込みました"
+} else {
+    $AppleTeamId    = ""
+    $AppleKeyId     = ""
+    $ApplePrivateKey = ""
+    Write-Warn "Apple Sign In をスキップしました。後から再デプロイして追加できます。"
+}
+
+# -----------------------------------------------------------------------------
+# フェデレーションサインイン制限設定
+# -----------------------------------------------------------------------------
+$hasFederation = (-not [string]::IsNullOrWhiteSpace($GoogleClientId)) -or (-not [string]::IsNullOrWhiteSpace($AppleServiceId))
+if ($hasFederation) {
+    Write-Host "`n=== サインイン制限設定 ===" -ForegroundColor White -BackgroundColor DarkGray
+    Write-Info "フェデレーションサインイン (Google / Apple) 以外のログインを禁止できます。"
+    if (-not $saved.ContainsKey("GOOGLE_ONLY")) { $saved["GOOGLE_ONLY"] = "" }
+    $prevFederationOnly = if ($saved["GOOGLE_ONLY"] -eq "true") { "true" } else { "false" }
+    $fedOnlyInput = Read-Host -Prompt "フェデレーションサインイン以外を許可しない? (true/false) [$prevFederationOnly] (Enter でそのまま)"
+    if ([string]::IsNullOrWhiteSpace($fedOnlyInput)) { $GoogleOnly = $prevFederationOnly }
+    else { $GoogleOnly = $fedOnlyInput }
+} else {
+    $GoogleOnly = "false"
 }
 
 # 設定を DPAPI 暗号化して保存
@@ -181,6 +214,10 @@ $toSave = @{
     GOOGLE_CLIENT_ID     = ConvertTo-Dpapi $GoogleClientId
     GOOGLE_CLIENT_SECRET = ConvertTo-Dpapi $GoogleClientSecret
     GOOGLE_ONLY          = $GoogleOnly
+    APPLE_SERVICE_ID     = ConvertTo-Dpapi $AppleServiceId
+    APPLE_TEAM_ID        = ConvertTo-Dpapi $AppleTeamId
+    APPLE_KEY_ID         = ConvertTo-Dpapi $AppleKeyId
+    APPLE_PRIVATE_KEY_PATH = ConvertTo-Dpapi $ApplePrivateKeyPath
 }
 $toSave | ConvertTo-Json | Set-Content $ConfigFile -Encoding UTF8
 Write-Success "設定を暗号化して保存しました: $ConfigFile (DPAPI)"
@@ -225,8 +262,17 @@ if (-not $SkipBootstrap) {
 $CdkParams = @(
     "--parameters", "GoogleClientId=$GoogleClientId",
     "--parameters", "GoogleClientSecret=$GoogleClientSecret",
-    "--parameters", "GoogleOnly=$GoogleOnly"
+    "--parameters", "GoogleOnly=$GoogleOnly",
+    "--parameters", "AppleServiceId=$AppleServiceId",
+    "--parameters", "AppleTeamId=$AppleTeamId",
+    "--parameters", "AppleKeyId=$AppleKeyId",
+    "--parameters", "ApplePrivateKeyPath=$ApplePrivateKeyPath"
 )
+# .p8 ファイルパスは CDK context で渡す（synth 時にファイルから読み込むため）
+if (-not [string]::IsNullOrWhiteSpace($ApplePrivateKeyPath)) {
+    $resolvedPath = (Resolve-Path $ApplePrivateKeyPath).Path
+    $CdkParams += @("-c", "applePrivateKeyPath=$resolvedPath")
+}
 
 # -----------------------------------------------------------------------------
 # CDK Synth / Deploy
