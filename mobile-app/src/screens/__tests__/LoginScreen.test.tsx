@@ -14,6 +14,7 @@ jest.mock('../../lib/storage', () => {
 
 jest.mock('../../lib/auth', () => ({
   login: jest.fn(),
+  loginWithApple: jest.fn(),
 }))
 
 import LoginScreen from '../LoginScreen'

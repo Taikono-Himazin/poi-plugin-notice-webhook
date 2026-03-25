@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert, ScrollView,
+  StyleSheet, ActivityIndicator, Alert, ScrollView, Platform,
 } from 'react-native'
+import * as AppleAuthentication from 'expo-apple-authentication'
 import { Storage, AuthConfig, loadConfigFromOutputs } from '../lib/storage'
-import { login } from '../lib/auth'
+import { login, loginWithApple } from '../lib/auth'
 import { reportError } from '../lib/reportError'
 
 type Props = {
@@ -55,6 +56,25 @@ export default function LoginScreen({ onLogin }: Props) {
     if (presetConfig) handleLogin(presetConfig)
   }
 
+  const handleAppleLogin = async (config: AuthConfig) => {
+    setLoading(true)
+    try {
+      await Storage.setAuthConfig(config)
+      const { email } = await loginWithApple(config)
+      onLogin(email)
+    } catch (e: unknown) {
+      reportError(e, { action: 'apple-login' })
+      const msg = e instanceof Error ? e.message : String(e)
+      Alert.alert('ログイン失敗', msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAppleLoginWithPreset = () => {
+    if (presetConfig) handleAppleLogin(presetConfig)
+  }
+
   const handleLoginWithManual = () => {
     const config: AuthConfig = {
       apiUrl:        apiUrl.trim().replace(/\/$/, ''),
@@ -86,6 +106,15 @@ export default function LoginScreen({ onLogin }: Props) {
             : <Text style={styles.buttonText}>ログイン</Text>
           }
         </TouchableOpacity>
+        {Platform.OS === 'ios' && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+            cornerRadius={10}
+            style={styles.appleButton}
+            onPress={handleAppleLoginWithPreset}
+          />
+        )}
         <Text style={styles.registerHint}>新規登録もログイン画面から行えます</Text>
       </View>
     )
@@ -146,6 +175,26 @@ export default function LoginScreen({ onLogin }: Props) {
           : <Text style={styles.buttonText}>ログイン</Text>
         }
       </TouchableOpacity>
+      {Platform.OS === 'ios' && (
+        <AppleAuthentication.AppleAuthenticationButton
+          buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
+          buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+          cornerRadius={10}
+          style={styles.appleButton}
+          onPress={() => {
+            const config: AuthConfig = {
+              apiUrl:        apiUrl.trim().replace(/\/$/, ''),
+              clientId:      clientId.trim(),
+              cognitoDomain: cognitoDomain.trim(),
+            }
+            if (!config.apiUrl || !config.clientId || !config.cognitoDomain) {
+              Alert.alert('入力エラー', '全ての項目を入力してください')
+              return
+            }
+            handleAppleLogin(config)
+          }}
+        />
+      )}
     </ScrollView>
   )
 }
@@ -162,4 +211,5 @@ const styles = StyleSheet.create({
   button:         { backgroundColor: '#5865f2', borderRadius: 10, padding: 16, alignItems: 'center' },
   buttonDisabled: { opacity: 0.6 },
   buttonText:     { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  appleButton:    { width: '100%', height: 50, marginTop: 12 },
 })
