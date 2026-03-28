@@ -9,9 +9,17 @@ module.exports = {
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'dark',
+    splash: {
+      backgroundColor: '#0f0f1a',
+    },
     ios: {
       supportsTablet: false,
       bundleIdentifier: 'com.github.taikonohimazin.poinotice',
+      icon: {
+        light: './assets/icon.png',
+        dark: './assets/icon-dark.png',
+      },
+      usesAppleSignIn: true,
       infoPlist: {
         UIBackgroundModes: ['fetch', 'remote-notification'],
         ITSAppUsesNonExemptEncryption: false,
@@ -20,11 +28,13 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
+        monochromeImage: './assets/adaptive-icon-monochrome.png',
         backgroundColor: '#1a1a2e',
       },
       package: 'com.github.taikonohimazin.poinotice',
     },
     plugins: [
+      'expo-apple-authentication',
       'expo-background-task',
       ['expo-notifications', { color: '#5865f2' }],
       [
