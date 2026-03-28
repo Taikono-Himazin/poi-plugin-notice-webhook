@@ -72,17 +72,26 @@ cd scripts
 API Gateway (REST)
 ├── POST   /webhooks/{token}       通知受信（認証不要）
 ├── PUT    /timers                 タイマー同期
+├── GET    /timers                 タイマー取得
 ├── GET    /account/config         アカウント設定取得
 ├── PUT    /account/config         アカウント設定更新
+├── PUT    /push-tokens            プッシュトークン登録
+├── DELETE /push-tokens            プッシュトークン削除
 ├── POST   /tokens                 トークン発行
 ├── GET    /tokens                 トークン一覧
-└── DELETE /tokens/{token}         トークン削除
+├── DELETE /tokens/{token}         トークン削除
+├── POST   /errors                 エラーレポート送信（認証不要）
+├── GET    /errors                 エラーログ一覧
+└── GET    /dashboard              エラーダッシュボード（認証不要）
 
-DynamoDB テーブル (4 テーブル)
-├── poi-webhook-accounts      ユーザーアカウント・契約状態
+DynamoDB テーブル
+├── poi-webhook-accounts      ユーザーアカウント・Webhook 設定
 ├── poi-webhook-tokens        通知用トークン
 ├── poi-webhook-notifications 遅延配信キュー
-└── poi-webhook-timers        タイマー状態
+├── poi-webhook-timers        タイマー状態
+├── poi-webhook-push-tokens   モバイルプッシュトークン
+├── poi-webhook-stats         通知送信統計
+└── poi-webhook-errors        エラーログ
 
 Cognito User Pool
 └── Managed Login (メール認証 + Google OAuth オプション)

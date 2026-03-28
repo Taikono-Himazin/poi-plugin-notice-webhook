@@ -34,8 +34,7 @@ Receives a game event notification and delivers it via Webhook from the cloud. N
 {
   "message": "Expedition complete: Fleet 1",
   "title": "Expedition Complete",
-  "type": "expedition",
-  "deliverAfterMinutes": 0
+  "type": "expedition"
 }
 ```
 
@@ -44,7 +43,6 @@ Receives a game event notification and delivers it via Webhook from the cloud. N
 | `message` | string | Notification message body |
 | `title` | string | Notification title |
 | `type` | string | `expedition` / `repair` / `construction` / `default` |
-| `deliverAfterMinutes` | number | Delivery delay (minutes). Paid plan only. 0 = immediate |
 
 **Response**: `{ "ok": true }`
 
@@ -54,7 +52,6 @@ Receives a game event notification and delivers it via Webhook from the cloud. N
 |---|---|
 | 400 | Missing token or Webhook not configured |
 | 404 | Token not found |
-| 429 | Free plan monthly limit (30) exceeded |
 
 ---
 
@@ -80,11 +77,46 @@ Syncs game timer state to the cloud and schedules notifications at completion ti
     "expedition": true,
     "repair": true,
     "construction": true
-  }
+  },
+  "notifyBeforeMinutes": 1,
+  "mobileOnly": false
 }
 ```
 
+| Field | Type | Description |
+|---|---|---|
+| `timers` | array | Array of timers |
+| `timers[].type` | string | `expedition` / `repair` / `construction` |
+| `timers[].slot` | string | Slot number |
+| `timers[].completesAt` | string | Completion time (ISO 8601) |
+| `timers[].message` | string | Notification message (defaults to type title if omitted) |
+| `enabled` | object | Enable/disable per type (default: all `true`) |
+| `notifyBeforeMinutes` | number | Minutes before completion to notify (0–60, default: 1) |
+| `mobileOnly` | boolean | If `true`, skip Webhook delivery (mobile app only). Default: `false` |
+
 An empty `timers` array cancels all existing schedules (used on logout).
+
+### GET /timers
+
+Returns the list of synced timers (expired timers are excluded). Used by the mobile app for background sync.
+
+**Auth**: Cognito JWT required
+
+**Response**
+
+```json
+{
+  "timers": [
+    {
+      "type": "expedition",
+      "slot": "1",
+      "completesAt": "2024-01-01T12:00:00.000Z",
+      "message": "Expedition complete: Fleet 1",
+      "notifyBeforeMinutes": 1
+    }
+  ]
+}
+```
 
 ---
 
@@ -101,10 +133,59 @@ Updates Webhook configuration. **Auth**: Cognito JWT required
 ```json
 {
   "webhookType": "discord",
-  "webhookUrl": "https://discord.com/api/webhooks/...",
-  "deliverBeforeMinutes": 1
+  "webhookUrl": "https://discord.com/api/webhooks/..."
 }
 ```
+
+| Field | Type | Description |
+|---|---|---|
+| `webhookType` | string | `discord` / `slack` / `none` (`none` removes Webhook config) |
+| `webhookUrl` | string | Webhook URL (required unless `webhookType` is `none`) |
+
+---
+
+## Push Token Management
+
+### PUT /push-tokens
+
+Registers the mobile app's Expo Push Token on the server. Used for silent push notification-based instant timer sync.
+
+**Auth**: Cognito JWT required
+
+**Request Body**
+
+```json
+{
+  "pushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `pushToken` | string | Expo Push Token (obtained via `expo-notifications`) |
+
+**Response**: `{ "ok": true }`
+
+**Errors**
+
+| Code | Reason |
+|---|---|
+| 400 | `pushToken` missing or not a string |
+| 401 | Not authenticated |
+
+### DELETE /push-tokens
+
+Deletes a registered push token (used on logout). **Auth**: Cognito JWT required
+
+**Request Body**
+
+```json
+{
+  "pushToken": "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]"
+}
+```
+
+**Response**: `{ "ok": true }`
 
 ---
 
@@ -118,34 +199,74 @@ Updates Webhook configuration. **Auth**: Cognito JWT required
 
 ---
 
-## Billing
+## Error Reporting
 
-### GET /billing/checkout?plan={plan}
+### POST /errors
 
-Creates a PAY.JP v2 checkout session and returns the payment page URL. **Auth**: Cognito JWT required
+Submits error logs from clients (mobile app or poi plugin). No authentication required.
 
-| Parameter | Value | Description |
-|---|---|---|
-| `plan` | `1m` / `6m` / `12m` | Plan to purchase |
-
-### GET /billing/status
-
-Returns subscription status. **Auth**: Cognito JWT required
+**Request Body**
 
 ```json
 {
-  "plan": "paid",
-  "subscriptionStatus": "active",
-  "paidUntil": 1740000000000,
-  "notificationCount": 12,
-  "monthlyLimit": null
+  "source": "mobile-app",
+  "level": "error",
+  "message": "Failed to sync timers",
+  "stack": "Error: ...",
+  "context": { "screen": "home" }
 }
 ```
 
-| Field | Description |
+| Field | Type | Description |
+|---|---|---|
+| `source` | string | `mobile-app` / `poi-plugin` (required) |
+| `level` | string | `error` / `warn` (default: `error`) |
+| `message` | string | Error message (required, max 1000 chars) |
+| `stack` | string | Stack trace (optional, max 5000 chars) |
+| `context` | object | Additional context (optional) |
+
+**Response**: `{ "ok": true }`
+
+**Errors**
+
+| Code | Reason |
 |---|---|
-| `plan` | `"paid"` or `"free"` |
-| `subscriptionStatus` | `"active"` / `"inactive"` / `"canceled"` |
-| `paidUntil` | Expiry timestamp (Unix ms). `null` = no expiry |
-| `notificationCount` | Notifications sent this month |
-| `monthlyLimit` | Monthly limit (free: 30, paid: `null` = unlimited) |
+| 400 | Invalid JSON, or invalid `source` / `level` / `message` |
+| 413 | Request body exceeds 10KB |
+
+### GET /errors
+
+Returns error logs. **Auth**: Cognito JWT required
+
+**Query Parameters**
+
+| Parameter | Type | Description |
+|---|---|---|
+| `source` | string | `mobile-app` / `poi-plugin` (default: `mobile-app`) |
+| `limit` | number | Number of items (max 200, default: 50) |
+| `since` | string | Return logs after this timestamp (ISO 8601) |
+| `cursor` | string | Pagination cursor |
+
+**Response**
+
+```json
+{
+  "errors": [
+    {
+      "id": "...",
+      "source": "mobile-app",
+      "timestamp": "2024-01-01T12:00:00.000Z",
+      "level": "error",
+      "message": "Failed to sync timers",
+      "stack": "Error: ...",
+      "context": {}
+    }
+  ],
+  "cursor": "..."
+}
+```
+
+### GET /dashboard
+
+Returns an HTML dashboard for viewing error logs. No authentication required (Cognito OAuth login is handled within the dashboard).
+

@@ -42,36 +42,19 @@ Sends Webhooks directly from the machine running poi. No additional setup requir
 
 ---
 
-## Cloud Mode (PREMIUM)
+## Cloud Mode
 
 Notifications are sent from the cloud. Delivered even when poi is closed.
 
 ### Login
 
-1. Select **"Cloud (PREMIUM)"** under Delivery Mode
+1. Select **"Cloud"** under Delivery Mode
 2. Click the "Login" button
-3. Create an account or sign in with your email address
+3. Create an account or sign in with email (Google login is also available)
 
 ### Webhook Configuration
 
 After logging in, set the Webhook type and URL and save. Settings are stored in the cloud.
-
-### Delayed Notifications (N Minutes Before)
-
-With a paid plan, you can receive notifications **N minutes before** completion.
-
-Adjust with the "Notify before (min)" slider in settings. Set to 0 for immediate notification at completion.
-
-### Upgrading to a Paid Plan
-
-The free plan is limited to 30 notifications per month. A paid plan is required for more.
-
-1. Open the "Payment" section in settings and select a plan (1 / 6 / 12 months)
-2. Click "Purchase"
-3. Enter your card details on the PAY.JP payment page
-4. Activated automatically after payment
-
-Purchasing while a plan is still active extends the remaining period.
 
 ### Logout
 
