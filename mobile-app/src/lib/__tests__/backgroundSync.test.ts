@@ -1,4 +1,5 @@
 import * as BackgroundTask from 'expo-background-task'
+import * as Notifications from 'expo-notifications'
 import * as TaskManager from 'expo-task-manager'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -6,7 +7,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 
 import {
   BACKGROUND_SYNC_TASK,
+  BACKGROUND_NOTIFICATION_TASK,
   registerBackgroundSync,
+  registerBackgroundNotificationTask,
   unregisterBackgroundSync,
 } from '../backgroundSync'
 
@@ -27,6 +30,16 @@ describe('BACKGROUND_SYNC_TASK', () => {
   })
 })
 
+describe('BACKGROUND_NOTIFICATION_TASK', () => {
+  it('タスク名が定義されている', () => {
+    expect(BACKGROUND_NOTIFICATION_TASK).toBe('poi-notice-background-notification')
+  })
+
+  it('defineTask で登録されている', () => {
+    expect((TaskManager as any)._tasks['poi-notice-background-notification']).toBeDefined()
+  })
+})
+
 describe('registerBackgroundSync', () => {
   it('未登録の場合はタスクを登録する', async () => {
     ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(false)
@@ -41,6 +54,22 @@ describe('registerBackgroundSync', () => {
     ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(true)
     await registerBackgroundSync()
     expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled()
+  })
+})
+
+describe('registerBackgroundNotificationTask', () => {
+  it('未登録の場合はタスクを登録する', async () => {
+    ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(false)
+    await registerBackgroundNotificationTask()
+    expect(Notifications.registerTaskAsync).toHaveBeenCalledWith(
+      'poi-notice-background-notification',
+    )
+  })
+
+  it('登録済みの場合はスキップする', async () => {
+    ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(true)
+    await registerBackgroundNotificationTask()
+    expect(Notifications.registerTaskAsync).not.toHaveBeenCalled()
   })
 })
 

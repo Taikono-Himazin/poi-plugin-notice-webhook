@@ -30,6 +30,7 @@ const KEYS = {
   NOTIFY_REPAIR:     'notify_repair',
   NOTIFY_CONSTRUCTION: 'notify_construction',
   LAST_SYNC:         'last_sync',
+  PUSH_TOKEN:        'push_token',
 } as const
 
 export type Timer = {
@@ -138,5 +139,17 @@ export const Storage = {
 
   async setLastSync(ts: number): Promise<void> {
     await AsyncStorage.setItem(KEYS.LAST_SYNC, String(ts))
+  },
+
+  async getPushToken(): Promise<string | null> {
+    return AsyncStorage.getItem(KEYS.PUSH_TOKEN)
+  },
+
+  async setPushToken(token: string): Promise<void> {
+    await AsyncStorage.setItem(KEYS.PUSH_TOKEN, token)
+  },
+
+  async clearPushToken(): Promise<void> {
+    await AsyncStorage.removeItem(KEYS.PUSH_TOKEN)
   },
 }

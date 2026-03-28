@@ -2,6 +2,7 @@ import * as AuthSession from 'expo-auth-session'
 import * as WebBrowser from 'expo-web-browser'
 import { Platform, NativeModules } from 'react-native'
 import { Storage, AuthConfig } from './storage'
+import { deletePushToken } from './api'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -140,7 +141,17 @@ export async function refreshTokens(): Promise<string | null> {
 }
 
 export async function logout(): Promise<void> {
-  const config = await Storage.getAuthConfig()
+  const [config, jwt, pushToken] = await Promise.all([
+    Storage.getAuthConfig(),
+    Storage.getJwt(),
+    Storage.getPushToken(),
+  ])
+
+  // サーバからプッシュトークンを削除（JWT が有効な間に実行する）
+  if (config && jwt && pushToken) {
+    await deletePushToken(config.apiUrl, jwt, pushToken).catch(() => {})
+  }
+  await Storage.clearPushToken()
   await Storage.clearJwt()
 
   // Cognito のセッション（ブラウザ Cookie）を破棄する

@@ -1,5 +1,9 @@
 import * as AuthSession from 'expo-auth-session'
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import axios from 'axios'
+
+jest.mock('axios')
+const mockedAxios = axios as jest.Mocked<typeof axios>
 
 // auth.ts 内の parseJwt で atob を使うのでグローバルに定義
 ;(global as any).atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
@@ -99,5 +103,48 @@ describe('logout', () => {
     await Storage.setJwt('token', 9999999999999, 'refresh')
     await logout()
     expect(await Storage.getJwt()).toBeNull()
+  })
+
+  it('プッシュトークンをサーバから削除する', async () => {
+    const config = {
+      apiUrl: 'https://test.execute-api.ap-northeast-1.amazonaws.com/v1',
+      clientId: 'client-123',
+      cognitoDomain: 'test-domain',
+    }
+    await Storage.setAuthConfig(config)
+    await Storage.setJwt('jwt-token', 9999999999999, 'refresh')
+    await Storage.setPushToken('ExponentPushToken[test]')
+
+    mockedAxios.delete.mockResolvedValue({ data: { ok: true } })
+
+    await logout()
+
+    expect(mockedAxios.delete).toHaveBeenCalledWith(
+      `${config.apiUrl}/push-tokens`,
+      expect.objectContaining({
+        data: { pushToken: 'ExponentPushToken[test]' },
+      }),
+    )
+    // ローカルのプッシュトークンもクリアされている
+    expect(await Storage.getPushToken()).toBeNull()
+  })
+
+  it('プッシュトークン削除が失敗してもログアウトは成功する', async () => {
+    const config = {
+      apiUrl: 'https://test.execute-api.ap-northeast-1.amazonaws.com/v1',
+      clientId: 'client-123',
+      cognitoDomain: 'test-domain',
+    }
+    await Storage.setAuthConfig(config)
+    await Storage.setJwt('jwt-token', 9999999999999, 'refresh')
+    await Storage.setPushToken('ExponentPushToken[test]')
+
+    mockedAxios.delete.mockRejectedValue(new Error('Network Error'))
+
+    await logout()
+
+    // JWT はクリアされている
+    expect(await Storage.getJwt()).toBeNull()
+    expect(await Storage.getPushToken()).toBeNull()
   })
 })

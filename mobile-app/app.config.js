@@ -13,7 +13,7 @@ module.exports = {
       supportsTablet: false,
       bundleIdentifier: 'com.github.taikonohimazin.poinotice',
       infoPlist: {
-        UIBackgroundModes: ['fetch'],
+        UIBackgroundModes: ['fetch', 'remote-notification'],
         ITSAppUsesNonExemptEncryption: false,
       },
     },
