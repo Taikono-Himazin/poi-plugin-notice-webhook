@@ -16,7 +16,7 @@
     "expo-asset": "~12.0.12",
     "expo-auth-session": "~7.0.10",
     "expo-background-task": "~1.0.10",
-    "expo-build-properties": "^55.0.10",
+    "expo-build-properties": "~1.0.10",
     "expo-crypto": "~15.0.8",
     "expo-notifications": "~0.32.16",
     "expo-status-bar": "~3.0.9",
