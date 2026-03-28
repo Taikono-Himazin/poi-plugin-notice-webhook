@@ -85,10 +85,10 @@ if (-not (Test-Path $awsOutputs)) {
 Write-Success "aws-outputs.json を確認しました"
 
 # -----------------------------------------------------------------------------
-# app.json バージョン表示
+# バージョン表示（version.json から取得）
 # -----------------------------------------------------------------------------
-$appJson = Get-Content (Join-Path $MobileAppDir "app.json") -Raw | ConvertFrom-Json
-$appVersion = $appJson.expo.version
+$versionJson = Get-Content (Join-Path (Split-Path $MobileAppDir -Parent) "version.json") -Raw | ConvertFrom-Json
+$appVersion = $versionJson.version
 Write-Info "アプリバージョン: $appVersion"
 
 # -----------------------------------------------------------------------------

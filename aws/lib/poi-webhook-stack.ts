@@ -292,7 +292,7 @@ export class PoiWebhookStack extends Stack {
         runtime: lambda.Runtime.NODEJS_20_X,
         timeout: Duration.seconds(30),
         memorySize: 256,
-        bundling: { minify: true, sourceMap: false },
+        bundling: { minify: true, sourceMap: false, forceDockerBundling: true },
         environment: { ...commonEnv, ...extraEnv },
       });
 
