@@ -1,7 +1,7 @@
-import * as Notifications from 'expo-notifications'
-import { Platform } from 'react-native'
-import { Storage } from './storage'
-import { registerPushToken as registerPushTokenApi } from './api'
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import { Storage } from './storage';
+import { registerPushToken as registerPushTokenApi } from './api';
 
 /**
  * Expo Push Token を取得してサーバに登録し、ローカルにキャッシュする。
@@ -13,14 +13,14 @@ export async function registerPushToken(apiUrl: string, jwt: string): Promise<vo
       name: 'Silent sync',
       importance: Notifications.AndroidImportance.MIN,
       sound: null,
-    })
+    });
   }
 
-  const { status } = await Notifications.getPermissionsAsync()
-  if (status !== 'granted') return
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return;
 
-  const { data: pushToken } = await Notifications.getExpoPushTokenAsync()
+  const { data: pushToken } = await Notifications.getExpoPushTokenAsync();
 
-  await registerPushTokenApi(apiUrl, jwt, pushToken)
-  await Storage.setPushToken(pushToken)
+  await registerPushTokenApi(apiUrl, jwt, pushToken);
+  await Storage.setPushToken(pushToken);
 }

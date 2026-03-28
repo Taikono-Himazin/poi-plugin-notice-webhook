@@ -1,9 +1,8 @@
-import * as BackgroundTask from 'expo-background-task'
-import * as Notifications from 'expo-notifications'
-import * as TaskManager from 'expo-task-manager'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-
-;(global as any).atob = (str: string) => Buffer.from(str, 'base64').toString('binary')
+import * as BackgroundTask from 'expo-background-task';
+import * as Notifications from 'expo-notifications';
+import * as TaskManager from 'expo-task-manager';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+(global as any).atob = (str: string) => Buffer.from(str, 'base64').toString('binary');
 
 import {
   BACKGROUND_SYNC_TASK,
@@ -11,76 +10,73 @@ import {
   registerBackgroundSync,
   registerBackgroundNotificationTask,
   unregisterBackgroundSync,
-} from '../backgroundSync'
+} from '../backgroundSync';
 
 beforeEach(() => {
-  jest.clearAllMocks()
-  ;(AsyncStorage as any)._resetStore()
-})
+  jest.clearAllMocks();
+  (AsyncStorage as any)._resetStore();
+});
 
 describe('BACKGROUND_SYNC_TASK', () => {
   it('タスク名が定義されている', () => {
-    expect(BACKGROUND_SYNC_TASK).toBe('poi-notice-background-sync')
-  })
+    expect(BACKGROUND_SYNC_TASK).toBe('poi-notice-background-sync');
+  });
 
   it('defineTask で登録されている', () => {
     // defineTask はモジュール読み込み時に呼ばれるため、
     // モックの _tasks に関数が登録されているかで確認する
-    expect((TaskManager as any)._tasks['poi-notice-background-sync']).toBeDefined()
-  })
-})
+    expect((TaskManager as any)._tasks['poi-notice-background-sync']).toBeDefined();
+  });
+});
 
 describe('BACKGROUND_NOTIFICATION_TASK', () => {
   it('タスク名が定義されている', () => {
-    expect(BACKGROUND_NOTIFICATION_TASK).toBe('poi-notice-background-notification')
-  })
+    expect(BACKGROUND_NOTIFICATION_TASK).toBe('poi-notice-background-notification');
+  });
 
   it('defineTask で登録されている', () => {
-    expect((TaskManager as any)._tasks['poi-notice-background-notification']).toBeDefined()
-  })
-})
+    expect((TaskManager as any)._tasks['poi-notice-background-notification']).toBeDefined();
+  });
+});
 
 describe('registerBackgroundSync', () => {
   it('未登録の場合はタスクを登録する', async () => {
-    ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(false)
-    await registerBackgroundSync()
-    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith(
-      'poi-notice-background-sync',
-      { minimumInterval: 900 },
-    )
-  })
+    (TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(false);
+    await registerBackgroundSync();
+    expect(BackgroundTask.registerTaskAsync).toHaveBeenCalledWith('poi-notice-background-sync', {
+      minimumInterval: 900,
+    });
+  });
 
   it('登録済みの場合はスキップする', async () => {
-    ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(true)
-    await registerBackgroundSync()
-    expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled()
-  })
-})
+    (TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(true);
+    await registerBackgroundSync();
+    expect(BackgroundTask.registerTaskAsync).not.toHaveBeenCalled();
+  });
+});
 
 describe('registerBackgroundNotificationTask', () => {
   it('未登録の場合はタスクを登録する', async () => {
-    ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(false)
-    await registerBackgroundNotificationTask()
-    expect(Notifications.registerTaskAsync).toHaveBeenCalledWith(
-      'poi-notice-background-notification',
-    )
-  })
+    (TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(false);
+    await registerBackgroundNotificationTask();
+    expect(Notifications.registerTaskAsync).toHaveBeenCalledWith('poi-notice-background-notification');
+  });
 
   it('登録済みの場合はスキップする', async () => {
-    ;(TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(true)
-    await registerBackgroundNotificationTask()
-    expect(Notifications.registerTaskAsync).not.toHaveBeenCalled()
-  })
-})
+    (TaskManager.isTaskRegisteredAsync as jest.Mock).mockResolvedValue(true);
+    await registerBackgroundNotificationTask();
+    expect(Notifications.registerTaskAsync).not.toHaveBeenCalled();
+  });
+});
 
 describe('unregisterBackgroundSync', () => {
   it('タスクを解除する', async () => {
-    await unregisterBackgroundSync()
-    expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith('poi-notice-background-sync')
-  })
+    await unregisterBackgroundSync();
+    expect(BackgroundTask.unregisterTaskAsync).toHaveBeenCalledWith('poi-notice-background-sync');
+  });
 
   it('エラーが発生しても例外を投げない', async () => {
-    ;(BackgroundTask.unregisterTaskAsync as jest.Mock).mockRejectedValue(new Error('not registered'))
-    await expect(unregisterBackgroundSync()).resolves.toBeUndefined()
-  })
-})
+    (BackgroundTask.unregisterTaskAsync as jest.Mock).mockRejectedValue(new Error('not registered'));
+    await expect(unregisterBackgroundSync()).resolves.toBeUndefined();
+  });
+});
