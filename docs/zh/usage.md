@@ -52,6 +52,8 @@ nav_order: 2
 2. 点击「登录」按钮
 3. 使用邮箱地址创建账户或登录（也支持 Google 登录）
 
+![登录画面](../images/login.png)
+
 ### Webhook 设置
 
 登录后设置 Webhook 类型和 URL 并保存。设置保存在云端。
@@ -65,6 +67,8 @@ nav_order: 2
 ## 移动应用
 
 iOS / Android 专用应用。与云端配送模式联动，直接向手机发送推送通知。无需设置 Discord 或 Slack 的 Webhook。
+
+![移动应用主屏幕](../images/iphone_image.png){: width="300" }
 
 ### 初始设置
 

@@ -52,6 +52,8 @@ Notifications are sent from the cloud. Delivered even when poi is closed.
 2. Click the "Login" button
 3. Create an account or sign in with email (Google login is also available)
 
+![Login screen](../images/login.png)
+
 ### Webhook Configuration
 
 After logging in, set the Webhook type and URL and save. Settings are stored in the cloud.
@@ -65,6 +67,8 @@ Click the "Logout" button to sign out. Scheduled notifications are cancelled on 
 ## Mobile App
 
 A dedicated app for iOS and Android. Works with Cloud mode to send push notifications directly to your smartphone — no Discord or Slack Webhook setup required.
+
+![Mobile app home screen](../images/iphone_image.png){: width="300" }
 
 ### Initial Setup
 

@@ -6,6 +6,15 @@
 
 [poi](https://github.com/poooi/poi) の遠征・入渠・建造完了通知を Discord / Slack へ転送するプラグインです。
 
+<p align="center">
+  <img src="docs/images/poi_image.png" alt="poi プラグイン設定画面" width="600">
+</p>
+
+<p align="center">
+  <img src="docs/images/iphone_image.png" alt="モバイルアプリ" width="250">
+  <img src="docs/images/discord.png" alt="Discord 通知" width="300">
+</p>
+
 ## 特徴
 
 - **直接配信モード** — poi が動作しているマシンから Webhook を直接送信

@@ -10,6 +10,10 @@ nav_order: 1
 
 适用于 [poi](https://github.com/poooi/poi) 的 Webhook 通知插件。将远征完成、入渠完成、建造完成等游戏事件通知到 Discord / Slack。
 
+| poi 插件 | 移动应用 | Discord 通知 |
+|:---:|:---:|:---:|
+| ![poi 插件](../images/poi_image.png) | ![移动应用](../images/iphone_image.png) | ![Discord](../images/discord.png) |
+
 ## 特点
 
 - **直接配送模式** — 从运行 poi 的机器直接发送 Webhook（无需设置）

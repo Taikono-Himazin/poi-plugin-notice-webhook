@@ -10,6 +10,10 @@ nav_order: 1
 
 A Webhook notification plugin for [poi](https://github.com/poooi/poi). Sends Discord / Slack notifications for game events such as expedition completion, repair completion, and construction completion.
 
+| poi Plugin | Mobile App | Discord Notification |
+|:---:|:---:|:---:|
+| ![poi Plugin](../images/poi_image.png) | ![Mobile App](../images/iphone_image.png) | ![Discord](../images/discord.png) |
+
 ## Features
 
 - **Direct mode** — Send Webhooks directly from the machine running poi (no setup required)

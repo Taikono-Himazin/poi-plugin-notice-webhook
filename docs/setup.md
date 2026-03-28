@@ -68,38 +68,72 @@ cd scripts
 
 ## 構成される AWS リソース
 
+```mermaid
+graph TB
+    subgraph "API Gateway (REST)"
+        direction LR
+        EP1["POST /webhooks/{token}<br/>通知受信（認証不要）"]
+        EP2["PUT /timers — タイマー同期<br/>GET /timers — タイマー取得"]
+        EP3["GET|PUT /account/config<br/>DELETE /account"]
+        EP4["PUT|DELETE /push-tokens"]
+        EP5["POST|GET /tokens<br/>DELETE /tokens/{token}"]
+    end
+
+    subgraph "DynamoDB"
+        T1[(accounts)]
+        T2[(tokens)]
+        T3[(notifications)]
+        T4[(timers)]
+        T5[(push-tokens)]
+        T6[(stats)]
+        T7[(errors)]
+    end
+
+    subgraph "認証"
+        COGNITO[Cognito User Pool<br/>Managed Login]
+    end
+
+    subgraph "スケジューリング"
+        EB[EventBridge Scheduler]
+        DELIVER[通知配信 Lambda]
+    end
+
+    EP2 --> T4
+    EP3 --> T1
+    EP4 --> T5
+    EP2 -- "サイレントプッシュ" --> EXPO[Expo Push API]
+    EB --> DELIVER
+    DELIVER --> T3
+    DELIVER --> DISCORD[Discord / Slack]
 ```
-API Gateway (REST)
-├── POST   /webhooks/{token}       通知受信（認証不要）
-├── PUT    /timers                 タイマー同期
-├── GET    /timers                 タイマー取得
-├── DELETE /account                 アカウント削除
-├── GET    /account/config         アカウント設定取得
-├── PUT    /account/config         アカウント設定更新
-├── PUT    /push-tokens            プッシュトークン登録
-├── DELETE /push-tokens            プッシュトークン削除
-├── POST   /tokens                 トークン発行
-├── GET    /tokens                 トークン一覧
-├── DELETE /tokens/{token}         トークン削除
-├── POST   /errors                 エラーレポート送信（認証不要）
-├── GET    /errors                 エラーログ一覧
-└── GET    /dashboard              エラーダッシュボード（認証不要）
 
-DynamoDB テーブル
-├── poi-webhook-accounts      ユーザーアカウント・Webhook 設定
-├── poi-webhook-tokens        通知用トークン
-├── poi-webhook-notifications 遅延配信キュー
-├── poi-webhook-timers        タイマー状態
-├── poi-webhook-push-tokens   モバイルプッシュトークン
-├── poi-webhook-stats         通知送信統計
-└── poi-webhook-errors        エラーログ
+### エンドポイント一覧
 
-Cognito User Pool
-└── Managed Login (メール認証 + Google OAuth オプション)
+| メソッド | パス | 説明 | 認証 |
+|---------|------|------|------|
+| POST | `/webhooks/{token}` | 通知受信 | トークン |
+| PUT | `/timers` | タイマー同期 | Cognito |
+| GET | `/timers` | タイマー取得 | Cognito |
+| DELETE | `/account` | アカウント削除 | Cognito |
+| GET / PUT | `/account/config` | アカウント設定 | Cognito |
+| PUT / DELETE | `/push-tokens` | プッシュトークン管理 | Cognito |
+| POST / GET | `/tokens` | トークン管理 | Cognito |
+| DELETE | `/tokens/{token}` | トークン削除 | Cognito |
+| POST | `/errors` | エラーレポート | 不要 |
+| GET | `/errors` | エラーログ一覧 | Cognito |
+| GET | `/dashboard` | エラーダッシュボード | 不要 |
 
-EventBridge Scheduler
-└── 各タイマーの配信スケジュール
-```
+### DynamoDB テーブル
+
+| テーブル名 | 用途 |
+|-----------|------|
+| `poi-webhook-accounts` | ユーザーアカウント・Webhook 設定 |
+| `poi-webhook-tokens` | 通知用トークン |
+| `poi-webhook-notifications` | 遅延配信キュー |
+| `poi-webhook-timers` | タイマー状態 |
+| `poi-webhook-push-tokens` | モバイルプッシュトークン |
+| `poi-webhook-stats` | 通知送信統計 |
+| `poi-webhook-errors` | エラーログ |
 
 ## 再デプロイ
 

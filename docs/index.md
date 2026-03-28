@@ -10,6 +10,10 @@ nav_order: 1
 
 [poi](https://github.com/poooi/poi) 向け Webhook 通知プラグインです。遠征完了・入渠完了・建造完了などのゲームイベントを Discord / Slack へ通知します。
 
+| poi プラグイン | モバイルアプリ | Discord 通知 |
+|:---:|:---:|:---:|
+| ![poi プラグイン](images/poi_image.png) | ![モバイルアプリ](images/iphone_image.png) | ![Discord](images/discord.png) |
+
 ## 特徴
 
 - **直接配信モード** — poi が動作しているマシンから Webhook を直接送信
