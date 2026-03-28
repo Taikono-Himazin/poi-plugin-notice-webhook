@@ -1,19 +1,19 @@
-import { Platform } from 'react-native'
-import Constants from 'expo-constants'
-import { loadConfigFromOutputs } from './storage'
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import { loadConfigFromOutputs } from './storage';
 
-const reported = new Set<string>()
+const reported = new Set<string>();
 
 export function reportError(err: unknown, ctx?: Record<string, string>): void {
-  const config = loadConfigFromOutputs()
-  if (!config) return
+  const config = loadConfigFromOutputs();
+  if (!config) return;
 
-  const error = err instanceof Error ? err : new Error(String(err))
-  const key = error.message.slice(0, 200)
-  if (reported.has(key)) return
-  reported.add(key)
+  const error = err instanceof Error ? err : new Error(String(err));
+  const key = error.message.slice(0, 200);
+  if (reported.has(key)) return;
+  reported.add(key);
 
-  const appVersion = Constants.expoConfig?.version ?? 'unknown'
+  const appVersion = Constants.expoConfig?.version ?? 'unknown';
 
   fetch(`${config.apiUrl}/errors`, {
     method: 'POST',
@@ -30,5 +30,5 @@ export function reportError(err: unknown, ctx?: Record<string, string>): void {
         ...ctx,
       },
     }),
-  }).catch(() => {})
+  }).catch(() => {});
 }

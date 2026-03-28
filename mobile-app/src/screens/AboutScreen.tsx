@@ -1,22 +1,19 @@
-import React from 'react'
-import {
-  View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Linking,
-} from 'react-native'
-import Constants from 'expo-constants'
+import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import Constants from 'expo-constants';
 
 type Props = {
-  onBack: () => void
-}
+  onBack: () => void;
+};
 
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0'
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 const LIBRARIES = [
   { name: 'React Native', license: 'MIT', url: 'https://github.com/facebook/react-native' },
   { name: 'Expo', license: 'MIT', url: 'https://github.com/expo/expo' },
   { name: 'axios', license: 'MIT', url: 'https://github.com/axios/axios' },
   { name: 'AsyncStorage', license: 'MIT', url: 'https://github.com/react-native-async-storage/async-storage' },
-]
+];
 
 export default function AboutScreen({ onBack }: Props) {
   return (
@@ -42,16 +39,13 @@ export default function AboutScreen({ onBack }: Props) {
           <Text style={styles.bodyText}>
             このアプリは poi (艦これブラウザ) の通知をモバイル端末に転送するための非公式ツールです。
           </Text>
-          <Text style={[styles.bodyText, { marginTop: 8 }]}>
-            © 2025 taikonohimazin
-          </Text>
+          <Text style={[styles.bodyText, { marginTop: 8 }]}>© 2025 taikonohimazin</Text>
           <TouchableOpacity
             style={{ marginTop: 12 }}
             onPress={() => Linking.openURL('https://www.pixiv.net/artworks/39534914')}
           >
             <Text style={styles.bodyText}>
-              アイコン画像出典:{' '}
-              <Text style={{ color: '#5865f2' }}>pixiv - 39534914</Text>
+              アイコン画像出典: <Text style={{ color: '#5865f2' }}>pixiv - 39534914</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -85,12 +79,8 @@ export default function AboutScreen({ onBack }: Props) {
       {/* 使用ライブラリ */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>使用ライブラリ</Text>
-        {LIBRARIES.map(lib => (
-          <TouchableOpacity
-            key={lib.name}
-            style={styles.libRow}
-            onPress={() => Linking.openURL(lib.url)}
-          >
+        {LIBRARIES.map((lib) => (
+          <TouchableOpacity key={lib.name} style={styles.libRow} onPress={() => Linking.openURL(lib.url)}>
             <View>
               <Text style={styles.libName}>{lib.name}</Text>
               <Text style={styles.libLicense}>{lib.license} License</Text>
@@ -102,22 +92,44 @@ export default function AboutScreen({ onBack }: Props) {
 
       <View style={{ height: 40 }} />
     </ScrollView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
-  container:    { flex: 1, backgroundColor: '#0f0f1a' },
-  header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: (Constants.statusBarHeight ?? 0) + 12 },
-  headerTitle:  { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  backText:     { color: '#5865f2', fontSize: 14 },
-  card:         { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e1e30', borderRadius: 12, padding: 16 },
-  appName:      { color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
-  version:      { color: '#666', fontSize: 13, textAlign: 'center', marginTop: 4 },
-  section:      { marginHorizontal: 16, marginBottom: 16 },
-  sectionTitle: { color: '#666', fontSize: 11, fontWeight: 'bold', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 },
-  bodyText:     { color: '#ccc', fontSize: 13, lineHeight: 20 },
-  libRow:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e1e30', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 6 },
-  libName:      { color: '#fff', fontSize: 15 },
-  libLicense:   { color: '#666', fontSize: 11, marginTop: 2 },
-  libLink:      { color: '#5865f2', fontSize: 16 },
-})
+  container: { flex: 1, backgroundColor: '#0f0f1a' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: (Constants.statusBarHeight ?? 0) + 12,
+  },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
+  backText: { color: '#5865f2', fontSize: 14 },
+  card: { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#1e1e30', borderRadius: 12, padding: 16 },
+  appName: { color: '#fff', fontSize: 20, fontWeight: 'bold', textAlign: 'center' },
+  version: { color: '#666', fontSize: 13, textAlign: 'center', marginTop: 4 },
+  section: { marginHorizontal: 16, marginBottom: 16 },
+  sectionTitle: {
+    color: '#666',
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  bodyText: { color: '#ccc', fontSize: 13, lineHeight: 20 },
+  libRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#1e1e30',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 6,
+  },
+  libName: { color: '#fff', fontSize: 15 },
+  libLicense: { color: '#666', fontSize: 11, marginTop: 2 },
+  libLink: { color: '#5865f2', fontSize: 16 },
+});

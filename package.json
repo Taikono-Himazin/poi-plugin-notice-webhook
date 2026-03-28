@@ -1,0 +1,35 @@
+{
+  "name": "poi-notice-webhook",
+  "version": "1.0.0",
+  "description": "[![GitHub Sponsors](https://img.shields.io/github/sponsors/Taikono-Himazin?label=Sponsor&logo=GitHub&style=for-the-badge)](https://github.com/sponsors/Taikono-Himazin)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "lint": "eslint aws/src aws/lib aws/__tests__ mobile-app/src",
+    "lint:fix": "eslint --fix aws/src aws/lib aws/__tests__ mobile-app/src",
+    "format": "prettier --write \"aws/{src,lib,__tests__}/**/*.{ts,js}\" \"mobile-app/src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"aws/{src,lib,__tests__}/**/*.{ts,js}\" \"mobile-app/src/**/*.{ts,tsx}\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Taikono-Himazin/poi-plugin-notice-webhook.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Taikono-Himazin/poi-plugin-notice-webhook/issues"
+  },
+  "homepage": "https://github.com/Taikono-Himazin/poi-plugin-notice-webhook#readme",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.57.2"
+  }
+}

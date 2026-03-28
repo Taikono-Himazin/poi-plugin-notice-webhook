@@ -1,0 +1,8 @@
+node_modules
+cdk.out
+dist
+*.d.ts
+aws-outputs.json
+.expo
+android
+ios

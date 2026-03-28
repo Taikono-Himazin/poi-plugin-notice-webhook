@@ -7,8 +7,9 @@ import { StatusBar } from 'expo-status-bar'
 import * as WebBrowser from 'expo-web-browser'
 import { Storage, loadConfigFromOutputs } from './src/lib/storage'
 import { requestPermissions } from './src/lib/notifications'
-import { registerBackgroundSync } from './src/lib/backgroundSync'
+import { registerBackgroundSync, registerBackgroundNotificationTask } from './src/lib/backgroundSync'
 import { logout, refreshTokens } from './src/lib/auth'
+import { registerPushToken } from './src/lib/pushToken'
 import LoginScreen from './src/screens/LoginScreen'
 import HomeScreen from './src/screens/HomeScreen'
 
@@ -30,6 +31,7 @@ export default function App() {
       try {
         await requestPermissions()
         await registerBackgroundSync()
+        await registerBackgroundNotificationTask()
       } catch {
         // 通知・バックグラウンド初期化の失敗はアプリ起動を止めない
       }
@@ -41,6 +43,17 @@ export default function App() {
           valid = !!newJwt
         }
         setIsLoggedIn(valid)
+
+        // ログイン済みならプッシュトークンをサーバに登録
+        if (valid) {
+          const [jwt, config] = await Promise.all([
+            Storage.getJwt(),
+            Storage.getAuthConfig(),
+          ])
+          if (jwt && config) {
+            registerPushToken(config.apiUrl, jwt).catch(() => {})
+          }
+        }
       } catch {
         setIsLoggedIn(false)
       }
@@ -48,7 +61,20 @@ export default function App() {
     init()
   }, [])
 
-  const handleLogin = () => setIsLoggedIn(true)
+  const handleLogin = async () => {
+    setIsLoggedIn(true)
+    try {
+      const [jwt, config] = await Promise.all([
+        Storage.getJwt(),
+        Storage.getAuthConfig(),
+      ])
+      if (jwt && config) {
+        await registerPushToken(config.apiUrl, jwt)
+      }
+    } catch {
+      // プッシュトークン登録の失敗はログインに影響させない
+    }
+  }
 
   const handleLogout = async () => {
     await logout()

@@ -1,4 +1,4 @@
-'use strict'
+'use strict';
 
 const html = (apiUrl, cognitoDomain, clientId, region) => `<!DOCTYPE html>
 <html lang="ja">
@@ -148,13 +148,13 @@ function esc(s){const d=document.createElement('div');d.textContent=s;return d.i
 init();
 </script>
 </body>
-</html>`
+</html>`;
 
 exports.handler = async (event) => {
-  const apiUrl        = process.env.API_URL || ''
-  const cognitoDomain = process.env.COGNITO_DOMAIN || ''
-  const clientId      = process.env.USER_POOL_CLIENT_ID || ''
-  const region        = process.env.AWS_REGION || 'ap-northeast-1'
+  const apiUrl = process.env.API_URL || '';
+  const cognitoDomain = process.env.COGNITO_DOMAIN || '';
+  const clientId = process.env.USER_POOL_CLIENT_ID || '';
+  const region = process.env.AWS_REGION || 'ap-northeast-1';
 
   return {
     statusCode: 200,
@@ -163,5 +163,5 @@ exports.handler = async (event) => {
       'Cache-Control': 'no-store',
     },
     body: html(apiUrl, cognitoDomain, clientId, region),
-  }
-}
+  };
+};

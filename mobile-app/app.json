@@ -20,7 +20,8 @@
       "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": [
-          "fetch"
+          "fetch",
+          "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false
       }
