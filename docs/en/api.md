@@ -120,7 +120,23 @@ Returns the list of synced timers (expired timers are excluded). Used by the mob
 
 ---
 
-## Account Config
+## Account Management
+
+### DELETE /account
+
+Permanently deletes the account and all associated data. Removes user data from all DynamoDB tables, cancels EventBridge schedules, and deletes the Cognito user.
+
+**Auth**: Cognito JWT required
+
+**Response**: `{ "ok": true }`
+
+**Deleted data:**
+- Account settings (Webhook config)
+- Notification tokens
+- Timer state and delivery schedules
+- Notification statistics
+- Push tokens
+- Cognito user
 
 ### GET /account/config
 

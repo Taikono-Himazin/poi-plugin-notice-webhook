@@ -120,7 +120,23 @@ nav_order: 3
 
 ---
 
-## 账户设置
+## 账户管理
+
+### DELETE /account
+
+永久删除账户及所有相关数据。从所有 DynamoDB 表中删除用户数据、取消 EventBridge 调度、删除 Cognito 用户。
+
+**认证**：需要 Cognito JWT
+
+**响应**：`{ "ok": true }`
+
+**删除的数据：**
+- 账户设置（Webhook 配置）
+- 通知令牌
+- 计时器状态和配送调度
+- 通知统计
+- 推送令牌
+- Cognito 用户
 
 ### GET /account/config — 获取 Webhook 设置。**认证**：需要 Cognito JWT
 

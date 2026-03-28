@@ -73,6 +73,7 @@ API Gateway (REST)
 ├── POST   /webhooks/{token}       通知受信（認証不要）
 ├── PUT    /timers                 タイマー同期
 ├── GET    /timers                 タイマー取得
+├── DELETE /account                 アカウント削除
 ├── GET    /account/config         アカウント設定取得
 ├── PUT    /account/config         アカウント設定更新
 ├── PUT    /push-tokens            プッシュトークン登録
