@@ -25,7 +25,7 @@ const cors = () => ({ 'Access-Control-Allow-Origin': '*' });
 
 // EventBridge Scheduler で許可された文字のみに正規化
 const safeScheduleName = (userId, type, slot) => {
-  const hash = crypto.createHash('md5').update(userId).digest('hex').slice(0, 8);
+  const hash = crypto.createHash('sha256').update(userId).digest('hex').slice(0, 8);
   return `poi-timer-${hash}-${type}-${slot}`;
 };
 
