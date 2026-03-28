@@ -7,6 +7,9 @@ jest.mock('../../lib/notifications', () => ({
   scheduleTimerNotifications: jest.fn(() => Promise.resolve()),
   getScheduledCount: jest.fn(() => Promise.resolve(2)),
 }));
+jest.mock('../../lib/widgetSync', () => ({
+  syncWidgetData: jest.fn(() => Promise.resolve()),
+}));
 
 import HomeScreen from '../HomeScreen';
 import { Storage } from '../../lib/storage';

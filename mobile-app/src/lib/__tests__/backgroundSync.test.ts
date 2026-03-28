@@ -1,3 +1,7 @@
+jest.mock('../widgetSync', () => ({
+  syncWidgetData: jest.fn(() => Promise.resolve()),
+}));
+
 import * as BackgroundTask from 'expo-background-task';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';

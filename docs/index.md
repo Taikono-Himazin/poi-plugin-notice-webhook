@@ -10,6 +10,10 @@ nav_order: 1
 
 [poi](https://github.com/poooi/poi) 向け Webhook 通知プラグインです。遠征完了・入渠完了・建造完了などのゲームイベントを Discord / Slack へ通知します。
 
+| poi プラグイン | モバイルアプリ | Discord 通知 |
+|:---:|:---:|:---:|
+| ![poi プラグイン](images/poi_image.png) | ![モバイルアプリ](images/iphone_image.png) | ![Discord](images/discord.png) |
+
 ## 特徴
 
 - **直接配信モード** — poi が動作しているマシンから Webhook を直接送信
@@ -45,6 +49,41 @@ nav_order: 1
 - **Discord** — チャンネル設定 →「連携サービス」→「ウェブフック」→「新しいウェブフック」で URL を作成（[公式ヘルプ](https://support.discord.com/hc/articles/228383668)）
 - **Slack** — [Slack App](https://api.slack.com/apps) で Incoming Webhooks を有効化してチャンネルを選択（[公式ヘルプ](https://api.slack.com/messaging/webhooks)）
 
+
+## アーキテクチャ
+
+```mermaid
+graph LR
+    subgraph ユーザー端末
+        POI[poi プラグイン]
+        APP[モバイルアプリ<br/>iOS / Android]
+    end
+
+    subgraph AWS
+        APIGW[API Gateway]
+        COGNITO[Cognito 認証]
+        DYNAMO[(DynamoDB)]
+        SCHEDULER[EventBridge Scheduler]
+        LAMBDA[Lambda]
+    end
+
+    DISCORD[Discord]
+    SLACK[Slack]
+    EXPO[Expo Push API]
+
+    POI -- "PUT /timers" --> APIGW
+    APP -- "GET /timers" --> APIGW
+    APIGW --> LAMBDA
+    LAMBDA --> DYNAMO
+    LAMBDA -- "サイレントプッシュ" --> EXPO
+    EXPO --> APP
+    LAMBDA --> SCHEDULER
+    SCHEDULER --> LAMBDA
+    LAMBDA --> DISCORD
+    LAMBDA --> SLACK
+    POI -- "直接配信" --> DISCORD
+    POI -- "直接配信" --> SLACK
+```
 
 ## 通知内容
 

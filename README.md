@@ -6,6 +6,15 @@
 
 [poi](https://github.com/poooi/poi) の遠征・入渠・建造完了通知を Discord / Slack へ転送するプラグインです。
 
+<p align="center">
+  <img src="docs/images/poi_image.png" alt="poi プラグイン設定画面" width="600">
+</p>
+
+<p align="center">
+  <img src="docs/images/iphone_image.png" alt="モバイルアプリ" width="250">
+  <img src="docs/images/discord.png" alt="Discord 通知" width="300">
+</p>
+
 ## 特徴
 
 - **直接配信モード** — poi が動作しているマシンから Webhook を直接送信
@@ -40,6 +49,83 @@
 
 - **Discord** — チャンネル設定 →「連携サービス」→「ウェブフック」→「新しいウェブフック」で URL を作成（[公式ヘルプ](https://support.discord.com/hc/articles/228383668)）
 - **Slack** — [Slack App](https://api.slack.com/apps) で Incoming Webhooks を有効化してチャンネルを選択（[公式ヘルプ](https://api.slack.com/messaging/webhooks)）
+
+## アーキテクチャ
+
+```mermaid
+graph LR
+    subgraph ユーザー端末
+        POI[poi プラグイン]
+        APP[モバイルアプリ<br/>iOS / Android]
+        WIDGET[ホーム画面<br/>ウィジェット]
+    end
+
+    subgraph AWS
+        APIGW[API Gateway]
+        COGNITO[Cognito<br/>認証]
+        DYNAMO[(DynamoDB)]
+        SCHEDULER[EventBridge<br/>Scheduler]
+        LAMBDA_SYNC[タイマー同期<br/>Lambda]
+        LAMBDA_DELIVER[通知配信<br/>Lambda]
+    end
+
+    DISCORD[Discord]
+    SLACK[Slack]
+    EXPO[Expo Push API]
+
+    POI -- "PUT /timers" --> APIGW
+    APP -- "GET /timers" --> APIGW
+    APP -. "ログイン" .-> COGNITO
+    POI -. "ログイン" .-> COGNITO
+    APIGW --> LAMBDA_SYNC
+    LAMBDA_SYNC --> DYNAMO
+    LAMBDA_SYNC -- "サイレントプッシュ" --> EXPO
+    EXPO -- "APNs / FCM" --> APP
+    APP --> WIDGET
+    LAMBDA_SYNC --> SCHEDULER
+    SCHEDULER --> LAMBDA_DELIVER
+    LAMBDA_DELIVER --> DISCORD
+    LAMBDA_DELIVER --> SLACK
+    POI -- "直接配信" --> DISCORD
+    POI -- "直接配信" --> SLACK
+```
+
+### 直接配信モード
+
+```mermaid
+sequenceDiagram
+    participant G as ゲーム
+    participant P as poi プラグイン
+    participant D as Discord / Slack
+
+    G->>P: API レスポンス（タイマー情報）
+    P->>D: Webhook 直接送信
+    D-->>D: 通知表示
+```
+
+### クラウド配信 + モバイルアプリ
+
+```mermaid
+sequenceDiagram
+    participant G as ゲーム
+    participant P as poi プラグイン
+    participant AWS as AWS (Lambda)
+    participant E as Expo Push API
+    participant A as モバイルアプリ
+    participant D as Discord / Slack
+
+    G->>P: API レスポンス（タイマー情報）
+    P->>AWS: PUT /timers（タイマー同期）
+    AWS->>AWS: DynamoDB 保存 + スケジュール作成
+    AWS->>E: サイレントプッシュ送信
+    E->>A: バックグラウンド起動
+    A->>AWS: GET /timers
+    AWS-->>A: タイマー一覧
+    A->>A: ローカル通知スケジュール
+    Note over A: 完了時刻にプッシュ通知
+    AWS->>AWS: EventBridge が時刻に発火
+    AWS->>D: Webhook 配信
+```
 
 ## ディレクトリ構成
 
