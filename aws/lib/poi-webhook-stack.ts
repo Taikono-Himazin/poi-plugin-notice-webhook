@@ -239,6 +239,17 @@ export class PoiWebhookStack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
     })
 
+    // プッシュトークンテーブル（userId: PK, pushToken: SK）
+    // モバイルアプリの Expo Push Token を管理（サイレントプッシュ送信用）
+    const pushTokensTable = new dynamodb.Table(this, 'PushTokensTable', {
+      tableName: 'poi-webhook-push-tokens',
+      partitionKey: { name: 'userId',    type: dynamodb.AttributeType.STRING },
+      sortKey:      { name: 'pushToken', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'ttl',
+      removalPolicy: RemovalPolicy.RETAIN,
+    })
+
     // ----------------------------------------------------------------
     // Lambda 共通設定
     // ----------------------------------------------------------------
@@ -250,6 +261,7 @@ export class PoiWebhookStack extends Stack {
       NOTIFICATIONS_TABLE:  notificationsTable.tableName,
       TIMERS_TABLE:         timersTable.tableName,
       STATS_TABLE:          statsTable.tableName,
+      PUSH_TOKENS_TABLE:    pushTokensTable.tableName,
       ERRORS_TABLE:         errorsTable.tableName,
       USER_POOL_ID:         userPool.userPoolId,
       USER_POOL_CLIENT_ID:  userPoolClientCfn.ref,
@@ -343,6 +355,16 @@ export class PoiWebhookStack extends Stack {
     const timerGetFn = fn('TimerGetFunction', 'timers/get.js')
     timersTable.grantReadData(timerGetFn)
 
+    // サイレントプッシュ送信のため sync Lambda にプッシュトークンの読み書き権限を付与
+    pushTokensTable.grantReadWriteData(timerSyncFn)
+
+    // プッシュトークン登録・削除（Cognito 認証、モバイルアプリ用）
+    const pushTokenRegisterFn = fn('PushTokenRegisterFunction', 'push-tokens/register.js')
+    pushTokensTable.grantReadWriteData(pushTokenRegisterFn)
+
+    const pushTokenDeleteFn = fn('PushTokenDeleteFunction', 'push-tokens/delete.js')
+    pushTokensTable.grantReadWriteData(pushTokenDeleteFn)
+
     // エラー収集（認証不要）
     const errorReportFn = fn('ErrorReportFunction', 'errors/report.js')
     errorReportFn.node.addDependency(errorsTable)
@@ -394,6 +416,11 @@ export class PoiWebhookStack extends Stack {
       .addResource('config')
     accountConfigRes.addMethod('GET', lam(accountConfigFn), withAuth)
     accountConfigRes.addMethod('PUT', lam(accountConfigFn), withAuth)
+
+    // プッシュトークン管理（Cognito 認証、モバイルアプリ用）
+    const pushTokensRes = api.root.addResource('push-tokens')
+    pushTokensRes.addMethod('PUT',    lam(pushTokenRegisterFn), withAuth)
+    pushTokensRes.addMethod('DELETE', lam(pushTokenDeleteFn),   withAuth)
 
     // トークン管理（要認証）
     const tokensRes = api.root.addResource('tokens')
