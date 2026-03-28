@@ -42,6 +42,9 @@ module.exports = {
         {
           ios: {
             deploymentTarget: '17.0',
+            extraPodfileProperties: {
+              CODE_SIGNING_ALLOWED: 'NO',
+            },
           },
         },
       ],
@@ -50,6 +53,23 @@ module.exports = {
     extra: {
       eas: {
         projectId: 'f7f74146-d99d-482f-a190-d3c78926c6eb',
+        build: {
+          experimental: {
+            ios: {
+              appExtensions: [
+                {
+                  targetName: 'PoiNoticeWidgetExtension',
+                  bundleIdentifier: 'com.github.taikonohimazin.poinotice.widget',
+                  entitlements: {
+                    'com.apple.security.application-groups': [
+                      'group.com.github.taikonohimazin.poinotice',
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
       },
     },
   },

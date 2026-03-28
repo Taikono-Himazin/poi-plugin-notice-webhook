@@ -6,23 +6,19 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal",
-      "ios": {
-        "image": "macos-sequoia-15.3-xcode-16.2"
-      }
+      "distribution": "internal"
     },
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false,
-        "image": "macos-sequoia-15.3-xcode-16.2"
+        "simulator": false
       }
     },
     "production": {
       "autoIncrement": true,
       "ios": {
         "buildConfiguration": "Release",
-        "image": "macos-sequoia-15.3-xcode-16.2"
+        "image": "sdk-54"
       },
       "android": {
         "buildType": "app-bundle"
