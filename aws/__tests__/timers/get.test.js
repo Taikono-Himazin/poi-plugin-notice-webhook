@@ -65,6 +65,7 @@ describe('GET /timers', () => {
       slot: 2,
       completesAt: future,
       message: 'msg',
+      notifyBeforeMinutes: 1,
     })
   })
 })

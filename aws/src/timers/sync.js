@@ -151,5 +151,48 @@ exports.handler = async (event) => {
     scheduled++
   }
 
+  // ---- サイレントプッシュ送信（fire-and-forget）----
+  try {
+    const pushTokensRes = await dynamo.send(new QueryCommand({
+      TableName: process.env.PUSH_TOKENS_TABLE,
+      KeyConditionExpression: 'userId = :uid',
+      ExpressionAttributeValues: { ':uid': userId },
+    }))
+
+    const pushTokens = (pushTokensRes.Items || []).map(item => item.pushToken)
+
+    if (pushTokens.length > 0) {
+      const messages = pushTokens.map(token => ({
+        to: token,
+        sound: null,
+        priority: 'high',
+        _contentAvailable: true,
+        data: { type: 'timer-sync' },
+      }))
+
+      const pushRes = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(messages),
+      })
+
+      // 無効なトークンをクリーンアップ
+      const pushResult = await pushRes.json()
+      if (pushResult.data) {
+        for (let i = 0; i < pushResult.data.length; i++) {
+          if (pushResult.data[i].status === 'error' &&
+              pushResult.data[i].details?.error === 'DeviceNotRegistered') {
+            await dynamo.send(new DeleteCommand({
+              TableName: process.env.PUSH_TOKENS_TABLE,
+              Key: { userId, pushToken: pushTokens[i] },
+            })).catch(() => {})
+          }
+        }
+      }
+    }
+  } catch {
+    // サイレントプッシュの失敗はタイマー同期に影響させない
+  }
+
   return ok({ ok: true, scheduled })
 }
