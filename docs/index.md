@@ -52,38 +52,7 @@ nav_order: 1
 
 ## アーキテクチャ
 
-```mermaid
-graph LR
-    subgraph ユーザー端末
-        POI[poi プラグイン]
-        APP[モバイルアプリ<br/>iOS / Android]
-    end
-
-    subgraph AWS
-        APIGW[API Gateway]
-        COGNITO[Cognito 認証]
-        DYNAMO[(DynamoDB)]
-        SCHEDULER[EventBridge Scheduler]
-        LAMBDA[Lambda]
-    end
-
-    DISCORD[Discord]
-    SLACK[Slack]
-    EXPO[Expo Push API]
-
-    POI -- "PUT /timers" --> APIGW
-    APP -- "GET /timers" --> APIGW
-    APIGW --> LAMBDA
-    LAMBDA --> DYNAMO
-    LAMBDA -- "サイレントプッシュ" --> EXPO
-    EXPO --> APP
-    LAMBDA --> SCHEDULER
-    SCHEDULER --> LAMBDA
-    LAMBDA --> DISCORD
-    LAMBDA --> SLACK
-    POI -- "直接配信" --> DISCORD
-    POI -- "直接配信" --> SLACK
-```
+![アーキテクチャ図](images/architecture.drawio.svg)
 
 ## 通知内容
 
@@ -99,4 +68,13 @@ graph LR
 
 ---
 
-<small>[プライバシーポリシー](privacy) / [利用規約](terms) </small>
+## 目次
+
+| ページ | 説明 |
+|---|---|
+| [使い方](usage) | プラグインの設定・操作方法 |
+| [API リファレンス](api) | REST API エンドポイント一覧 |
+| [高度な使い方](setup) | セルフホスト向けセットアップ |
+| [サイレントプッシュ同期設計](design-silent-push-sync) | 即時同期の設計ドキュメント |
+| [プライバシーポリシー](privacy) | 個人情報の取り扱い |
+| [利用規約](terms) | サービス利用条件 |

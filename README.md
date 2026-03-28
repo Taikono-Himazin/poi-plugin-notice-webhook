@@ -52,80 +52,15 @@
 
 ## アーキテクチャ
 
-```mermaid
-graph LR
-    subgraph ユーザー端末
-        POI[poi プラグイン]
-        APP[モバイルアプリ<br/>iOS / Android]
-        WIDGET[ホーム画面<br/>ウィジェット]
-    end
+<p align="center">
+  <img src="docs/images/architecture.drawio.svg" alt="アーキテクチャ図" width="820">
+</p>
 
-    subgraph AWS
-        APIGW[API Gateway]
-        COGNITO[Cognito<br/>認証]
-        DYNAMO[(DynamoDB)]
-        SCHEDULER[EventBridge<br/>Scheduler]
-        LAMBDA_SYNC[タイマー同期<br/>Lambda]
-        LAMBDA_DELIVER[通知配信<br/>Lambda]
-    end
+### クラウド配信 + モバイルアプリのフロー
 
-    DISCORD[Discord]
-    SLACK[Slack]
-    EXPO[Expo Push API]
-
-    POI -- "PUT /timers" --> APIGW
-    APP -- "GET /timers" --> APIGW
-    APP -. "ログイン" .-> COGNITO
-    POI -. "ログイン" .-> COGNITO
-    APIGW --> LAMBDA_SYNC
-    LAMBDA_SYNC --> DYNAMO
-    LAMBDA_SYNC -- "サイレントプッシュ" --> EXPO
-    EXPO -- "APNs / FCM" --> APP
-    APP --> WIDGET
-    LAMBDA_SYNC --> SCHEDULER
-    SCHEDULER --> LAMBDA_DELIVER
-    LAMBDA_DELIVER --> DISCORD
-    LAMBDA_DELIVER --> SLACK
-    POI -- "直接配信" --> DISCORD
-    POI -- "直接配信" --> SLACK
-```
-
-### 直接配信モード
-
-```mermaid
-sequenceDiagram
-    participant G as ゲーム
-    participant P as poi プラグイン
-    participant D as Discord / Slack
-
-    G->>P: API レスポンス（タイマー情報）
-    P->>D: Webhook 直接送信
-    D-->>D: 通知表示
-```
-
-### クラウド配信 + モバイルアプリ
-
-```mermaid
-sequenceDiagram
-    participant G as ゲーム
-    participant P as poi プラグイン
-    participant AWS as AWS (Lambda)
-    participant E as Expo Push API
-    participant A as モバイルアプリ
-    participant D as Discord / Slack
-
-    G->>P: API レスポンス（タイマー情報）
-    P->>AWS: PUT /timers（タイマー同期）
-    AWS->>AWS: DynamoDB 保存 + スケジュール作成
-    AWS->>E: サイレントプッシュ送信
-    E->>A: バックグラウンド起動
-    A->>AWS: GET /timers
-    AWS-->>A: タイマー一覧
-    A->>A: ローカル通知スケジュール
-    Note over A: 完了時刻にプッシュ通知
-    AWS->>AWS: EventBridge が時刻に発火
-    AWS->>D: Webhook 配信
-```
+<p align="center">
+  <img src="docs/images/flow-cloud.drawio.svg" alt="クラウド配信フロー" width="780">
+</p>
 
 ## ディレクトリ構成
 
