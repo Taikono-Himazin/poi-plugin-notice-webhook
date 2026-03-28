@@ -27,6 +27,15 @@ module.exports = {
     plugins: [
       'expo-background-task',
       ['expo-notifications', { color: '#5865f2' }],
+      [
+        'expo-build-properties',
+        {
+          ios: {
+            deploymentTarget: '17.0',
+          },
+        },
+      ],
+      './plugins/withWidget',
     ],
     extra: {
       eas: {

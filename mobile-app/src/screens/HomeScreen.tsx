@@ -8,6 +8,7 @@ import { refreshTokens } from '../lib/auth';
 import { scheduleTimerNotifications, getScheduledCount } from '../lib/notifications';
 import * as Notifications from 'expo-notifications';
 import { reportError } from '../lib/reportError';
+import { syncWidgetData } from '../lib/widgetSync';
 
 type Props = {
   onLogout: () => void;
@@ -88,15 +89,17 @@ export default function HomeScreen({ onLogout }: Props) {
 
       const [fetched, s] = await Promise.all([fetchTimers(config.apiUrl, jwt), Storage.getNotifySettings()]);
 
+      const now = Date.now();
       await Promise.all([
         Storage.setTimersCache(fetched),
-        Storage.setLastSync(Date.now()),
+        Storage.setLastSync(now),
         scheduleTimerNotifications(fetched, s),
+        syncWidgetData(fetched, now),
       ]);
 
       const sc = await getScheduledCount();
       setTimers(fetched);
-      setLastSync(Date.now());
+      setLastSync(now);
       setScheduledCount(sc);
     } catch (e: unknown) {
       reportError(e, { action: 'sync' });

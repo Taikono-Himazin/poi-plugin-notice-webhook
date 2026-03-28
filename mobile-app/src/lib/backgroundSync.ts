@@ -5,6 +5,7 @@ import { Storage } from './storage';
 import { refreshTokens } from './auth';
 import { fetchTimers } from './api';
 import { scheduleTimerNotifications } from './notifications';
+import { syncWidgetData } from './widgetSync';
 
 export const BACKGROUND_SYNC_TASK = 'poi-notice-background-sync';
 export const BACKGROUND_NOTIFICATION_TASK = 'poi-notice-background-notification';
@@ -27,10 +28,12 @@ async function performSync(): Promise<void> {
   const timers = await fetchTimers(config.apiUrl, jwt);
   const settings = await Storage.getNotifySettings();
 
+  const now = Date.now();
   await Promise.all([
     Storage.setTimersCache(timers),
-    Storage.setLastSync(Date.now()),
+    Storage.setLastSync(now),
     scheduleTimerNotifications(timers, settings),
+    syncWidgetData(timers, now),
   ]);
 }
 
