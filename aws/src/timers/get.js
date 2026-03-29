@@ -31,6 +31,7 @@ exports.handler = async (event) => {
       slot: item.slot,
       completesAt: item.completesAt,
       message: item.message,
+      widgetMessage: item.widgetMessage || '',
       notifyBeforeMinutes: item.notifyBeforeMinutes ?? 1,
     }));
 

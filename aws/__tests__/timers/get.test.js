@@ -74,6 +74,7 @@ describe('GET /timers', () => {
       slot: 2,
       completesAt: future,
       message: 'msg',
+      widgetMessage: '',
       notifyBeforeMinutes: 1,
     });
   });

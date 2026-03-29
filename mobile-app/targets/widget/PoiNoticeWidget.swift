@@ -6,6 +6,7 @@ import SwiftUI
 struct TimerData: Codable {
     let type: String
     let message: String
+    let widgetMessage: String?
     let completesAt: String
     let slot: Int?
     let durationSeconds: Double?
@@ -19,6 +20,7 @@ struct WidgetTimerData: Codable {
 struct ActiveTimer {
     let type: String
     let message: String
+    let widgetMessage: String
     let completesAt: Date
     let slot: Int?
     let durationSeconds: Double?
@@ -32,11 +34,11 @@ struct ActiveTimer {
         }
     }
 
-    var typeColor: Color {
+    func typeColor(for theme: WidgetTheme) -> Color {
         switch type {
-        case "expedition":   return Color(red: 0.345, green: 0.396, blue: 0.949)
-        case "repair":       return Color(red: 0.341, green: 0.949, blue: 0.529)
-        case "construction": return Color(red: 0.996, green: 0.906, blue: 0.361)
+        case "expedition":   return theme.expeditionColor
+        case "repair":       return theme.repairColor
+        case "construction": return theme.constructionColor
         default:             return .gray
         }
     }
@@ -141,6 +143,7 @@ struct PoiTimelineProvider: TimelineProvider {
                 guard let completeDate = isoFrac.date(from: timer.completesAt)
                                       ?? iso.date(from: timer.completesAt) else { return nil }
                 return ActiveTimer(type: timer.type, message: timer.message,
+                                   widgetMessage: timer.widgetMessage ?? timer.message,
                                    completesAt: completeDate, slot: timer.slot,
                                    durationSeconds: timer.durationSeconds)
             }
@@ -157,14 +160,65 @@ struct PoiTimelineProvider: TimelineProvider {
     }
 }
 
+// MARK: - Theme
+
+struct WidgetTheme {
+    let background: Color
+    let expeditionColor: Color
+    let repairColor: Color
+    let constructionColor: Color
+    let primaryText: Color
+    let slotText: Color
+    let syncText: Color
+    let trackFill: Color
+    let dividerColor: Color
+
+    static func forScheme(_ scheme: ColorScheme) -> WidgetTheme {
+        switch scheme {
+        case .dark:
+            return WidgetTheme(
+                background: Color(red: 0.059, green: 0.059, blue: 0.102),
+                expeditionColor: Color(red: 0.482, green: 0.545, blue: 0.969),
+                repairColor: Color(red: 0.341, green: 0.949, blue: 0.529),
+                constructionColor: Color(red: 0.996, green: 0.906, blue: 0.361),
+                primaryText: .white,
+                slotText: .white.opacity(0.55),
+                syncText: .white.opacity(0.5),
+                trackFill: Color.white.opacity(0.12),
+                dividerColor: Color.white.opacity(0.12)
+            )
+        @unknown default:
+            return WidgetTheme(
+                background: Color(red: 0.961, green: 0.961, blue: 0.980),
+                expeditionColor: Color(red: 0.231, green: 0.298, blue: 0.753),
+                repairColor: Color(red: 0.102, green: 0.541, blue: 0.271),
+                constructionColor: Color(red: 0.541, green: 0.427, blue: 0.0),
+                primaryText: .black.opacity(0.87),
+                slotText: .black.opacity(0.5),
+                syncText: .black.opacity(0.45),
+                trackFill: Color.black.opacity(0.08),
+                dividerColor: Color.black.opacity(0.08)
+            )
+        }
+    }
+}
+
+private struct ThemeBackground: View {
+    @Environment(\.colorScheme) var colorScheme
+    var body: some View {
+        WidgetTheme.forScheme(colorScheme).background
+    }
+}
+
 // MARK: - Views
 
-private let bgColor = Color(red: 0.059, green: 0.059, blue: 0.102)
-
 struct SmallWidgetView: View {
+    @Environment(\.colorScheme) var colorScheme
     let entry: PoiEntry
 
     var body: some View {
+        let theme = WidgetTheme.forScheme(colorScheme)
+
         if entry.timers.isEmpty {
             VStack(spacing: 8) {
                 Image(systemName: "anchor")
@@ -183,10 +237,10 @@ struct SmallWidgetView: View {
                         HStack(spacing: 4) {
                             Image(systemName: timers[0].typeIcon)
                                 .font(.system(size: 8))
-                                .foregroundColor(timers[0].typeColor)
+                                .foregroundColor(timers[0].typeColor(for: theme))
                             Text(timers[0].typeLabel)
                                 .font(.system(size: 9, weight: .bold))
-                                .foregroundColor(timers[0].typeColor)
+                                .foregroundColor(timers[0].typeColor(for: theme))
                         }
                         .padding(.top, type == typeOrder.first(where: { grouped[$0] != nil }) ? 0 : 2)
 
@@ -194,13 +248,13 @@ struct SmallWidgetView: View {
                             HStack(spacing: 4) {
                                 Text("\(timer.slot ?? 0)")
                                     .font(.system(size: 7))
-                                    .foregroundColor(.white.opacity(0.35))
+                                    .foregroundColor(theme.slotText)
                                     .frame(width: 8)
 
                                 GeometryReader { geo in
                                     ZStack(alignment: .leading) {
-                                        Capsule().fill(Color.white.opacity(0.1))
-                                        Capsule().fill(timer.typeColor)
+                                        Capsule().fill(theme.trackFill)
+                                        Capsule().fill(timer.typeColor(for: theme))
                                             .frame(width: geo.size.width * timer.progress(at: now))
                                     }
                                 }
@@ -208,7 +262,7 @@ struct SmallWidgetView: View {
 
                                 Text(timer.remainingFormatted(at: now))
                                     .font(.system(size: 9, weight: .semibold))
-                                    .foregroundColor(timer.typeColor)
+                                    .foregroundColor(timer.typeColor(for: theme))
                                     .monospacedDigit()
                                     .frame(minWidth: 28, alignment: .trailing)
                             }
@@ -223,9 +277,12 @@ struct SmallWidgetView: View {
 }
 
 struct MediumWidgetView: View {
+    @Environment(\.colorScheme) var colorScheme
     let entry: PoiEntry
 
     var body: some View {
+        let theme = WidgetTheme.forScheme(colorScheme)
+
         if entry.timers.isEmpty {
             HStack {
                 Spacer()
@@ -239,8 +296,8 @@ struct MediumWidgetView: View {
                             .font(.system(size: 10)).foregroundColor(.orange)
                     }
                     if let sync = entry.lastSync {
-                        Text("同期: ").font(.system(size: 10)).foregroundColor(Color(white: 0.4))
-                        + Text(sync, style: .relative).font(.system(size: 10)).foregroundColor(Color(white: 0.4))
+                        Text("同期: ").font(.system(size: 10)).foregroundColor(theme.syncText)
+                        + Text(sync, style: .relative).font(.system(size: 10)).foregroundColor(theme.syncText)
                     }
                 }
                 Spacer()
@@ -258,23 +315,23 @@ struct MediumWidgetView: View {
                             HStack(spacing: 3) {
                                 Image(systemName: timers[0].typeIcon)
                                     .font(.system(size: 9))
-                                    .foregroundColor(timers[0].typeColor)
+                                    .foregroundColor(timers[0].typeColor(for: theme))
                                 Text(timers[0].typeLabel)
                                     .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(timers[0].typeColor)
+                                    .foregroundColor(timers[0].typeColor(for: theme))
                             }
 
                             ForEach(timers, id: \.slot) { timer in
                                 HStack(spacing: 4) {
                                     Text("\(timer.slot ?? 0)")
                                         .font(.system(size: 8))
-                                        .foregroundColor(.white.opacity(0.35))
+                                        .foregroundColor(theme.slotText)
                                         .frame(width: 8)
 
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
-                                            Capsule().fill(Color.white.opacity(0.1))
-                                            Capsule().fill(timer.typeColor)
+                                            Capsule().fill(theme.trackFill)
+                                            Capsule().fill(timer.typeColor(for: theme))
                                                 .frame(width: geo.size.width * timer.progress(at: now))
                                         }
                                     }
@@ -282,7 +339,7 @@ struct MediumWidgetView: View {
 
                                     Text(timer.remainingFormatted(at: now))
                                         .font(.system(size: 10, weight: .semibold))
-                                        .foregroundColor(timer.typeColor)
+                                        .foregroundColor(timer.typeColor(for: theme))
                                         .monospacedDigit()
                                         .frame(minWidth: 28, alignment: .trailing)
                                 }
@@ -298,9 +355,12 @@ struct MediumWidgetView: View {
 }
 
 struct LargeWidgetView: View {
+    @Environment(\.colorScheme) var colorScheme
     let entry: PoiEntry
 
     var body: some View {
+        let theme = WidgetTheme.forScheme(colorScheme)
+
         if entry.timers.isEmpty {
             VStack(spacing: 8) {
                 Image(systemName: "anchor")
@@ -318,23 +378,23 @@ struct LargeWidgetView: View {
                 ForEach(Array(typeOrder.enumerated()), id: \.offset) { idx, type in
                     if let timers = grouped[type] {
                         if idx > 0 && grouped[typeOrder.prefix(idx).first(where: { grouped[$0] != nil }) ?? ""] != nil {
-                            Divider().background(Color.white.opacity(0.1)).padding(.vertical, 6)
+                            Divider().background(theme.dividerColor).padding(.vertical, 6)
                         }
 
                         // Section header
                         HStack(spacing: 5) {
                             Image(systemName: timers[0].typeIcon)
                                 .font(.system(size: 11))
-                                .foregroundColor(timers[0].typeColor)
+                                .foregroundColor(timers[0].typeColor(for: theme))
                             Text(timers[0].typeLabel)
                                 .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(timers[0].typeColor)
+                                .foregroundColor(timers[0].typeColor(for: theme))
 
                             Spacer()
 
                             Text("\(timers.count)枠")
                                 .font(.system(size: 10))
-                                .foregroundColor(timers[0].typeColor.opacity(0.6))
+                                .foregroundColor(timers[0].typeColor(for: theme).opacity(0.6))
                         }
                         .padding(.bottom, 6)
 
@@ -343,28 +403,28 @@ struct LargeWidgetView: View {
                             HStack(spacing: 8) {
                                 Text("\(timer.slot ?? 0)")
                                     .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.35))
+                                    .foregroundColor(theme.slotText)
                                     .frame(width: 12)
 
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(timer.message)
+                                    Text(timer.widgetMessage)
                                         .font(.system(size: 12))
-                                        .foregroundColor(.white)
+                                        .foregroundColor(theme.primaryText)
                                         .lineLimit(1)
 
                                     GeometryReader { geo in
                                         ZStack(alignment: .leading) {
-                                            Capsule().fill(Color.white.opacity(0.1))
-                                            Capsule().fill(timer.typeColor)
+                                            Capsule().fill(theme.trackFill)
+                                            Capsule().fill(timer.typeColor(for: theme))
                                                 .frame(width: geo.size.width * timer.progress(at: now))
                                         }
                                     }
                                     .frame(height: 4)
                                 }
 
-                                Text(timer.completesAt, style: .relative)
+                                Text(timer.remainingFormatted(at: now))
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(timer.typeColor(for: theme))
                                     .monospacedDigit()
                                     .frame(minWidth: 56, alignment: .trailing)
                             }
@@ -381,7 +441,7 @@ struct LargeWidgetView: View {
                         Spacer()
                         Text("同期: \(lastSync, style: .relative)前")
                             .font(.system(size: 9))
-                            .foregroundColor(.white.opacity(0.25))
+                            .foregroundColor(theme.syncText)
                     }
                 }
             }
@@ -502,11 +562,11 @@ struct PoiNoticeWidget: Widget {
         StaticConfiguration(kind: kind, provider: PoiTimelineProvider()) { entry in
             if #available(iOSApplicationExtension 17.0, *) {
                 PoiWidgetEntryView(entry: entry)
-                    .containerBackground(bgColor, for: .widget)
+                    .containerBackground(for: .widget) { ThemeBackground() }
             } else {
                 PoiWidgetEntryView(entry: entry)
                     .padding()
-                    .background(bgColor)
+                    .background(ThemeBackground())
             }
         }
         .configurationDisplayName("poi タイマー")

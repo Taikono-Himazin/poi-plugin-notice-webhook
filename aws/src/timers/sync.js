@@ -103,7 +103,7 @@ exports.handler = async (event) => {
   let scheduled = 0;
 
   for (const timer of timers) {
-    const { type, slot, completesAt, message } = timer;
+    const { type, slot, completesAt, message, widgetMessage } = timer;
     if (!type || !slot || !completesAt) continue;
     if (enabled[type] === false) continue;
 
@@ -125,6 +125,7 @@ exports.handler = async (event) => {
             slot,
             completesAt,
             message: msgText,
+            widgetMessage: widgetMessage || '',
             notifyBeforeMinutes,
             ttl: Math.floor(completesAtMs / 1000) + 86400,
           },
@@ -158,6 +159,7 @@ exports.handler = async (event) => {
             slot,
             completesAt,
             message: payload.message,
+            widgetMessage: widgetMessage || '',
             notifyBeforeMinutes,
             scheduleName,
             notificationId,
