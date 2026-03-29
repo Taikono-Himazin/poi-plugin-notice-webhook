@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { Storage } from './storage';
 import { registerPushToken as registerPushTokenApi } from './api';
@@ -19,7 +20,10 @@ export async function registerPushToken(apiUrl: string, jwt: string): Promise<vo
   const { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') return;
 
-  const { data: pushToken } = await Notifications.getExpoPushTokenAsync();
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  const { data: pushToken } = await Notifications.getExpoPushTokenAsync({
+    projectId,
+  });
 
   await registerPushTokenApi(apiUrl, jwt, pushToken);
   await Storage.setPushToken(pushToken);
