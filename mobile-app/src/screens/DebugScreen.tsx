@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import * as TaskManager from 'expo-task-manager';
 import { isModuleAvailable, getWidgetDiagnostics } from '../../modules/widget-data';
 import { getSyncLog, clearSyncLog, SyncLogEntry } from '../lib/syncLog';
 import { BACKGROUND_SYNC_TASK, BACKGROUND_NOTIFICATION_TASK } from '../lib/backgroundSync';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '-';
 
 type Props = {
   onBack: () => void;
@@ -82,6 +85,17 @@ export default function DebugScreen({ onBack }: Props) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>デバッグ</Text>
         <View style={{ width: 48 }} />
+      </View>
+
+      {/* バージョン情報 */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>バージョン</Text>
+        <View style={styles.card}>
+          <DiagRow label="アプリ" value={`v${APP_VERSION}`} />
+          <DiagRow label="ランタイム" value={Updates.runtimeVersion ?? '-'} />
+          <DiagRow label="Update ID" value={Updates.updateId ? Updates.updateId.slice(0, 8) : 'embedded'} />
+          <DiagRow label="チャンネル" value={Updates.channel ?? '-'} />
+        </View>
       </View>
 
       {/* ウィジェット通信診断 */}

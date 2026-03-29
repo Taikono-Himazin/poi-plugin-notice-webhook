@@ -14,12 +14,14 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { Storage, AuthConfig, loadConfigFromOutputs } from '../lib/storage';
 import { login, loginWithApple } from '../lib/auth';
 import { reportError } from '../lib/reportError';
+import DebugScreen from './DebugScreen';
 
 type Props = {
   onLogin: (email: string) => void;
 };
 
 export default function LoginScreen({ onLogin }: Props) {
+  const [showDebug, setShowDebug] = useState(false);
   // aws-outputs.json から読み込まれた設定（あれば入力フォームを非表示にする）
   const [presetConfig, setPresetConfig] = useState<AuthConfig | null>(null);
   const [apiUrl, setApiUrl] = useState('');
@@ -95,6 +97,10 @@ export default function LoginScreen({ onLogin }: Props) {
     handleLogin(config);
   };
 
+  if (showDebug) {
+    return <DebugScreen onBack={() => setShowDebug(false)} />;
+  }
+
   // aws-outputs.json から設定が読み込まれている場合: ボタンのみ表示
   if (presetConfig) {
     return (
@@ -118,6 +124,9 @@ export default function LoginScreen({ onLogin }: Props) {
           />
         )}
         <Text style={styles.registerHint}>新規登録もログイン画面から行えます</Text>
+        <TouchableOpacity style={styles.debugButton} onPress={() => setShowDebug(true)}>
+          <Text style={styles.debugButtonText}>デバッグ</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -192,6 +201,9 @@ export default function LoginScreen({ onLogin }: Props) {
           }}
         />
       )}
+      <TouchableOpacity style={styles.debugButton} onPress={() => setShowDebug(true)}>
+        <Text style={styles.debugButtonText}>デバッグ</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -209,4 +221,6 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   appleButton: { width: '100%', height: 50, marginTop: 12 },
+  debugButton: { marginTop: 24, alignItems: 'center', paddingVertical: 12 },
+  debugButtonText: { color: '#555', fontSize: 12 },
 });
