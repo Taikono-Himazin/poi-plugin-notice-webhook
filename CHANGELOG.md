@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [1.2.1] - 2026-03-29
+
+### Added
+
+- ウィジェットのダーク/ライトモード対応・コントラスト修正
+- ウィジェットに widgetMessage フィールドを追加
+
+### Fixed
+
+- getExpoPushTokenAsync に projectId を渡すよう修正
+
 ## [1.2.0] - 2026-03-29
 
 ### Added
