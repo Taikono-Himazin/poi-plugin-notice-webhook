@@ -6,4 +6,4 @@ module.exports = {
     Failed: 2,
     NoData: 3,
   },
-}
+};

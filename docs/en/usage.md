@@ -98,12 +98,12 @@ Add a timer widget to your home screen to check remaining time without opening t
 
 ## Notification Colors
 
-| Type | Event | Discord | Slack |
-|---|---|---|---|
-| `expedition` | Expedition complete | Purple `#5865F2` | Purple `#5865F2` |
-| `repair` | Repair complete | Green `#57F287` | Green `#57F287` |
+| Type           | Event                 | Discord          | Slack            |
+| -------------- | --------------------- | ---------------- | ---------------- |
+| `expedition`   | Expedition complete   | Purple `#5865F2` | Purple `#5865F2` |
+| `repair`       | Repair complete       | Green `#57F287`  | Green `#57F287`  |
 | `construction` | Construction complete | Yellow `#FEE75C` | Yellow `#FEE75C` |
-| `default` | Other | Gray `#AAAAAA` | Gray `#AAAAAA` |
+| `default`      | Other                 | Gray `#AAAAAA`   | Gray `#AAAAAA`   |
 
 ---
 

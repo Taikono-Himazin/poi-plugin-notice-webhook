@@ -7,4 +7,4 @@ module.exports = {
   exchangeCodeAsync: jest.fn(),
   refreshAsync: jest.fn(),
   ResponseType: { Code: 'code' },
-}
+};

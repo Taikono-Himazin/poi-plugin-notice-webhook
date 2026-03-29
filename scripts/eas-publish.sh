@@ -9,6 +9,8 @@
 #   ./eas-publish.sh --skip-build --platform ios
 #   ./eas-publish.sh --ota-only                          # OTA のみ公開
 #   ./eas-publish.sh --ota-only --ota-message "バグ修正"  # メッセージ付き
+#   ./eas-publish.sh --auto                               # build/update 自動判別
+#   ./eas-publish.sh --auto --ota-message "バグ修正"      # 自動判別 + メッセージ
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -30,6 +32,7 @@ SKIP_SUBMIT=false
 OTA_ONLY=false
 OTA_MESSAGE=""
 NON_INTERACTIVE=false
+AUTO_DETECT=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,6 +43,7 @@ while [[ $# -gt 0 ]]; do
     --ota-only)        OTA_ONLY=true;        shift ;;
     --ota-message)     OTA_MESSAGE="$2";     shift 2 ;;
     --non-interactive) NON_INTERACTIVE=true;  shift ;;
+    --auto)            AUTO_DETECT=true;      shift ;;
     *) fail "不明なオプション: $1" ;;
   esac
 done
@@ -53,6 +57,9 @@ case "$PROFILE" in
   production|preview) ;;
   *) fail "--profile は production, preview のいずれかです。" ;;
 esac
+
+# --auto と --ota-only の同時指定チェック
+[[ "$AUTO_DETECT" == "true" && "$OTA_ONLY" == "true" ]] && fail "--auto と --ota-only は同時に指定できません。"
 
 # -----------------------------------------------------------------------------
 # ディレクトリ移動
@@ -96,6 +103,42 @@ APP_VERSION="$(jq -r '.version' "$PROJECT_ROOT/version.json")"
 info "アプリバージョン: $APP_VERSION"
 
 # -----------------------------------------------------------------------------
+# --auto: フィンガープリントによる build / update 自動判別
+# -----------------------------------------------------------------------------
+FINGERPRINT_FILE="$MOBILE_APP_DIR/.eas-fingerprint"
+AUTO_REASON=""
+
+if [[ "$AUTO_DETECT" == "true" ]]; then
+  echo ""
+  echo "=== ネイティブ変更の自動判別 ==="
+
+  info "フィンガープリントを生成中..."
+  CURRENT_HASH="$(cd "$MOBILE_APP_DIR" && npx @expo/fingerprint generate 2>/dev/null | jq -r '.hash')"
+
+  if [[ -z "$CURRENT_HASH" || "$CURRENT_HASH" == "null" ]]; then
+    fail "フィンガープリントの生成に失敗しました。npx @expo/fingerprint generate を手動で確認してください。"
+  fi
+  info "現在のフィンガープリント: ${CURRENT_HASH:0:16}..."
+
+  if [[ -f "$FINGERPRINT_FILE" ]]; then
+    SAVED_HASH="$(jq -r '.hash' "$FINGERPRINT_FILE" 2>/dev/null)"
+    SAVED_TIME="$(jq -r '.timestamp' "$FINGERPRINT_FILE" 2>/dev/null)"
+
+    if [[ "$CURRENT_HASH" == "$SAVED_HASH" ]]; then
+      OTA_ONLY=true
+      AUTO_REASON="ネイティブ変更なし (前回ビルド: $SAVED_TIME)"
+      success "ネイティブ変更なし → OTA アップデート (eas update)"
+    else
+      AUTO_REASON="ネイティブ変更あり (前回: ${SAVED_HASH:0:16}... → 現在: ${CURRENT_HASH:0:16}...)"
+      success "ネイティブ変更あり → フルビルド (eas build)"
+    fi
+  else
+    AUTO_REASON="前回のフィンガープリントなし (初回ビルド)"
+    success "初回ビルド → フルビルド (eas build)"
+  fi
+fi
+
+# -----------------------------------------------------------------------------
 # 確認
 # -----------------------------------------------------------------------------
 if [[ "$NON_INTERACTIVE" == "false" ]]; then
@@ -106,6 +149,7 @@ if [[ "$NON_INTERACTIVE" == "false" ]]; then
     echo "  ビルド           : $( [[ "$SKIP_BUILD" == "false" ]] && echo true || echo false )"
     echo "  ストア提出       : $( [[ "$SKIP_SUBMIT" == "false" ]] && echo true || echo false )"
   fi
+  [[ -n "$AUTO_REASON" ]] && echo "  判別理由         : $AUTO_REASON"
   echo "  プラットフォーム : $PLATFORM"
   echo "  プロファイル     : $PROFILE"
   [[ -n "$OTA_MESSAGE" ]] && echo "  OTA メッセージ   : $OTA_MESSAGE"
@@ -158,6 +202,12 @@ if [[ "$SKIP_BUILD" == "false" ]]; then
     eas build --platform "$p" --profile "$PROFILE" --non-interactive || fail "EAS Build ($p) が失敗しました。"
     success "ビルド完了: $p"
   done
+  # ビルド成功後にフィンガープリントを保存
+  if [[ "$AUTO_DETECT" == "true" ]]; then
+    info "フィンガープリントを保存中..."
+    printf '{"hash":"%s","timestamp":"%s"}\n' "$CURRENT_HASH" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$FINGERPRINT_FILE"
+    success "フィンガープリントを保存しました: $FINGERPRINT_FILE"
+  fi
 else
   warn "ビルドをスキップしました (--skip-build)"
 fi

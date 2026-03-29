@@ -24,12 +24,12 @@ When using Cloud mode, the following information is collected and processed.
 
 ### Information Collected
 
-| Information | Purpose |
-|---|---|
-| Email address | Account authentication (Amazon Cognito) |
-| Webhook URL | Stored as notification delivery destination |
-| Notification tokens | Used to authenticate notification requests |
-| Notification content (title, message, type) | Forwarded to your Webhook |
+| Information                                 | Purpose                                     |
+| ------------------------------------------- | ------------------------------------------- |
+| Email address                               | Account authentication (Amazon Cognito)     |
+| Webhook URL                                 | Stored as notification delivery destination |
+| Notification tokens                         | Used to authenticate notification requests  |
+| Notification content (title, message, type) | Forwarded to your Webhook                   |
 
 ### Information NOT Collected
 
@@ -66,4 +66,4 @@ For questions, please open an issue on [GitHub Issues](https://github.com/Taikon
 
 ---
 
-*Last updated: March 2026*
+_Last updated: March 2026_

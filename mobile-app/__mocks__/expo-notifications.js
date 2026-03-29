@@ -10,4 +10,4 @@ module.exports = {
   SchedulableTriggerInputTypes: { DATE: 'date' },
   AndroidImportance: { MIN: 1 },
   setNotificationChannelAsync: jest.fn(() => Promise.resolve()),
-}
+};

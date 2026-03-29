@@ -6,4 +6,4 @@ module.exports = {
   moduleNameMapper: {
     '^.*/aws-outputs\\.json$': '<rootDir>/__mocks__/aws-outputs.json',
   },
-}
+};

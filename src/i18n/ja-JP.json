@@ -47,7 +47,7 @@
   "forceSync": "強制同期",
   "forceSyncing": "同期中...",
   "forceSyncDone": "同期しました",
-  "supportNote":"クラウドの維持費という名の現実から目を逸らすために、皆様からの応援（お菓子代）を募集しています。機能制限はありませんが、開発者のメンタルが劇的に回復します。",
+  "supportNote": "クラウドの維持費という名の現実から目を逸らすために、皆様からの応援（お菓子代）を募集しています。機能制限はありませんが、開発者のメンタルが劇的に回復します。",
   "notifyBeforeLabel": "完了の",
   "notifyBeforeUnit": "分前に通知",
   "supportLink": "支援する（GitHub Sponsors）"

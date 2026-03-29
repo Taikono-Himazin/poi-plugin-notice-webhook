@@ -289,7 +289,7 @@ export class PoiWebhookStack extends Stack {
         functionName: `poi-webhook-${id.replace(/Function$/, '').toLowerCase()}`,
         entry: path.join(srcDir, entry),
         handler: 'handler',
-        runtime: lambda.Runtime.NODEJS_20_X,
+        runtime: lambda.Runtime.NODEJS_24_X,
         timeout: Duration.seconds(30),
         memorySize: 256,
         bundling: { minify: true, sourceMap: false },
