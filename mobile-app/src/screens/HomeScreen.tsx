@@ -186,7 +186,7 @@ export default function HomeScreen({ onLogout }: Props) {
     ]);
   }, [onLogout]);
 
-  const active = timers.filter((t) => new Date(t.completesAt).getTime() > Date.now());
+  const active = timers;
 
   const lastSyncText = lastSync ? `最終同期: ${new Date(lastSync).toLocaleTimeString('ja-JP')}` : '未同期';
 

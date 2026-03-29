@@ -40,6 +40,7 @@ export type Timer = {
   completesAt: string;
   message: string;
   notifyBeforeMinutes?: number;
+  durationSeconds?: number;
 };
 
 export type NotifySettings = {
