@@ -20,7 +20,7 @@
     "@types/node": "^20.0.0",
     "aws-cdk": "^2.170.0",
     "aws-sdk-client-mock": "^4.1.0",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.25.12",
     "jest": "^30.3.0",
     "typescript": "^5.0.0"
   }
