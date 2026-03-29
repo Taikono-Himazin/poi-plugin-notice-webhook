@@ -1,331 +1,324 @@
 #!/usr/bin/env bash
-# =============================================================================
-# poi-plugin-notice-webhook デプロイスクリプト
-# 使い方:
-#   ./deploy.sh --profile <AWS_PROFILE> --region <AWS_REGION> [options]
-# =============================================================================
+# ---------------------------------------------------------------------------
+# poi-plugin-notice-webhook AWS デプロイスクリプト (sh 版)
+#
+# CDK を使って AWS にデプロイします。--profile と --region は必須です。
+#
+# Usage:
+#   ./deploy.sh --profile myprofile --region ap-northeast-1
+#   ./deploy.sh --profile prod --region ap-northeast-1 --skip-bootstrap
+#   ./deploy.sh --profile prod --region ap-northeast-1 --dry-run
+# ---------------------------------------------------------------------------
 set -euo pipefail
 
 # -----------------------------------------------------------------------------
-# カラー出力
+# ユーティリティ
 # -----------------------------------------------------------------------------
-RED='\033[0;31m'; YELLOW='\033[1;33m'; GREEN='\033[0;32m'
-CYAN='\033[0;36m'; BOLD='\033[1m'; RESET='\033[0m'
+info()    { printf '\033[36m[INFO]  %s\033[0m\n' "$*"; }
+success() { printf '\033[32m[OK]    %s\033[0m\n' "$*"; }
+warn()    { printf '\033[33m[WARN]  %s\033[0m\n' "$*"; }
+fail()    { printf '\033[31m[ERROR] %s\033[0m\n' "$*"; exit 1; }
 
-info()    { echo -e "${CYAN}[INFO]${RESET}  $*"; }
-success() { echo -e "${GREEN}[OK]${RESET}    $*"; }
-warn()    { echo -e "${YELLOW}[WARN]${RESET}  $*"; }
-error()   { echo -e "${RED}[ERROR]${RESET} $*" >&2; }
-die()     { error "$*"; exit 1; }
+# シークレット入力 (エコーバックなし)
+read_secret() {
+  local prompt="$1" val
+  printf '%s' "$prompt" >&2
+  read -rs val
+  echo >&2
+  printf '%s' "$val"
+}
+
+# 値取得: 環境変数 > 保存済み > 対話入力
+# get_value ENV_VAR "プロンプト" is_secret(0/1) required(0/1)
+get_value() {
+  local env_var="$1" prompt="$2" is_secret="${3:-1}" required="${4:-1}"
+  local val="" new="" hint=""
+
+  # 環境変数を優先
+  val="${!env_var:-}"
+
+  # 保存済み設定を参照
+  if [[ -z "$val" && -f "$CONFIG_FILE" ]]; then
+    val="$(jq -r --arg k "$env_var" '.[$k] // ""' "$CONFIG_FILE" 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$val" ]]; then
+    # 保存済みあり: Enter でスキップ、入力すれば上書き
+    if [[ "$is_secret" == "1" ]]; then
+      hint="${val:0:4}****"
+      new="$(read_secret "$prompt [$hint] (Enter でそのまま): ")"
+    else
+      read -rp "$prompt [$val] (Enter でそのまま): " new
+    fi
+    [[ -n "$new" ]] && val="$new"
+  else
+    # 未保存: 入力
+    if [[ "$is_secret" == "1" ]]; then
+      val="$(read_secret "$prompt: ")"
+    else
+      read -rp "$prompt: " val
+    fi
+    if [[ -z "$val" && "$required" == "1" ]]; then
+      fail "$env_var が空です。"
+    fi
+  fi
+
+  printf '%s' "$val"
+}
 
 # -----------------------------------------------------------------------------
-# 引数パース
+# 引数解析
 # -----------------------------------------------------------------------------
-AWS_PROFILE=""
-AWS_REGION=""
-PAYJP_SECRET_KEY="${PAYJP_SECRET_KEY:-}"
-PAYJP_PUBLIC_KEY="${PAYJP_PUBLIC_KEY:-}"
-PAYJP_WEBHOOK_SECRET="${PAYJP_WEBHOOK_SECRET:-}"
-PAYJP_PRICE_1M="${PAYJP_PRICE_1M:-}"
-PAYJP_PRICE_6M="${PAYJP_PRICE_6M:-}"
-PAYJP_PRICE_12M="${PAYJP_PRICE_12M:-}"
-GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
-GOOGLE_CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
+PROFILE=""
+REGION=""
 SKIP_BOOTSTRAP=false
 DRY_RUN=false
 
-usage() {
-  cat <<EOF
-${BOLD}使い方:${RESET}
-  $(basename "$0") --profile PROFILE --region REGION [options]
-
-${BOLD}必須オプション:${RESET}
-  --profile  PROFILE   AWS CLI プロファイル名
-  --region   REGION    デプロイ先リージョン (例: ap-northeast-1)
-
-${BOLD}任意オプション:${RESET}
-  --skip-bootstrap     CDK bootstrap をスキップ (既に実行済みの場合)
-  --dry-run            デプロイせず確認のみ (cdk synth)
-  --help               このヘルプを表示
-
-${BOLD}環境変数 (引数で渡す代わりに設定可):${RESET}
-  PAYJP_SECRET_KEY      PAY.JP シークレットキー
-  PAYJP_PUBLIC_KEY      PAY.JP 公開キー
-  PAYJP_WEBHOOK_SECRET  PAY.JP Webhook シークレット (v2: whook_...)
-  PAYJP_PRICE_1M        PAY.JP v2 価格 ID — 1ヶ月プラン (price_...)
-  PAYJP_PRICE_6M        PAY.JP v2 価格 ID — 6ヶ月プラン (price_...)
-  PAYJP_PRICE_12M       PAY.JP v2 価格 ID — 12ヶ月プラン (price_...)
-  GOOGLE_CLIENT_ID      Google OAuth 2.0 クライアント ID（省略でスキップ）
-  GOOGLE_CLIENT_SECRET  Google OAuth 2.0 クライアントシークレット
-
-${BOLD}例:${RESET}
-  ./deploy.sh --profile myprofile --region ap-northeast-1
-  ./deploy.sh --profile prod --region ap-northeast-1 --skip-bootstrap
-EOF
-  exit 0
-}
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --profile)        AWS_PROFILE="$2";  shift 2 ;;
-    --region)         AWS_REGION="$2";   shift 2 ;;
-    --skip-bootstrap) SKIP_BOOTSTRAP=true; shift  ;;
-    --dry-run)        DRY_RUN=true;      shift    ;;
-    --help|-h)        usage ;;
-    *) die "不明なオプション: $1  (--help でヘルプを表示)" ;;
+    --profile)       PROFILE="$2";       shift 2 ;;
+    --region)        REGION="$2";        shift 2 ;;
+    --skip-bootstrap) SKIP_BOOTSTRAP=true; shift ;;
+    --dry-run)       DRY_RUN=true;       shift ;;
+    *) fail "不明なオプション: $1" ;;
   esac
 done
 
-# -----------------------------------------------------------------------------
-# 必須引数チェック
-# -----------------------------------------------------------------------------
-[[ -z "$AWS_PROFILE" ]] && die "--profile は必須です。例: --profile myprofile"
-[[ -z "$AWS_REGION"  ]] && die "--region は必須です。例: --region ap-northeast-1"
+[[ -z "$PROFILE" ]] && fail "--profile は必須です。"
+[[ -z "$REGION" ]]  && fail "--region は必須です。"
 
 # -----------------------------------------------------------------------------
 # 前提ツール確認
 # -----------------------------------------------------------------------------
-echo -e "\n${BOLD}=== 前提ツール確認 ===${RESET}"
-check_cmd() {
-  if command -v "$1" &>/dev/null; then
-    success "$1 : $(command -v "$1")"
-  else
-    die "$1 が見つかりません。インストールしてください。"
-  fi
-}
-check_cmd node
-check_cmd npm
-check_cmd aws
+echo ""
+echo "=== 前提ツール確認 ==="
 
-NODE_VER=$(node -e "process.stdout.write(process.version)")
+for cmd in node npm aws; do
+  if command -v "$cmd" &>/dev/null; then
+    success "$cmd : $(command -v "$cmd")"
+  else
+    fail "$cmd が見つかりません。インストールしてください。"
+  fi
+done
+
+NODE_VER="$(node -e 'process.stdout.write(process.version)')"
 info "Node.js バージョン: $NODE_VER"
 
 # -----------------------------------------------------------------------------
 # AWS 認証確認
 # -----------------------------------------------------------------------------
-echo -e "\n${BOLD}=== AWS 認証確認 ===${RESET}"
-info "プロファイル: ${AWS_PROFILE}  /  リージョン: ${AWS_REGION}"
+echo ""
+echo "=== AWS 認証確認 ==="
+info "プロファイル: $PROFILE  /  リージョン: $REGION"
 
-CALLER_IDENTITY=$(aws sts get-caller-identity \
-  --profile "$AWS_PROFILE" \
-  --region  "$AWS_REGION" \
-  --output json 2>&1) \
-  || die "AWS 認証に失敗しました。プロファイル「${AWS_PROFILE}」を確認してください。\n${CALLER_IDENTITY}"
+IDENTITY="$(aws sts get-caller-identity \
+  --profile "$PROFILE" \
+  --region  "$REGION"  \
+  --output  json 2>&1)" || fail "AWS 認証に失敗しました。プロファイル「$PROFILE」を確認してください。"
 
-AWS_ACCOUNT=$(echo "$CALLER_IDENTITY" | grep -o '"Account": *"[^"]*"' | grep -o '[0-9]*')
-AWS_USER=$(echo "$CALLER_IDENTITY" | grep -o '"Arn": *"[^"]*"' | cut -d'"' -f4)
+AWS_ACCOUNT="$(echo "$IDENTITY" | jq -r '.Account')"
+AWS_USER="$(echo "$IDENTITY" | jq -r '.Arn')"
 success "認証成功"
 info "  アカウント ID : $AWS_ACCOUNT"
 info "  IAM 識別子    : $AWS_USER"
 
 # -----------------------------------------------------------------------------
-# スクリプトのディレクトリから aws/ に移動
+# aws/ ディレクトリに移動
 # -----------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-AWS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+AWS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)/aws"
 cd "$AWS_DIR"
 info "作業ディレクトリ: $AWS_DIR"
 
 # -----------------------------------------------------------------------------
-# PAY.JP キー設定 (保存済み → 環境変数 → 対話入力 の優先順位)
-# 保存先: aws/.poi-webhook-deploy.env (chmod 600, オーナーのみ読み取り可)
+# 保存済み設定読み込み
 # -----------------------------------------------------------------------------
-echo -e "\n${BOLD}=== PAY.JP キー設定 ===${RESET}"
-
-CONFIG_FILE="$AWS_DIR/.poi-webhook-deploy.env"
-
-# 保存済み設定を読み込む (環境変数が未設定の項目のみ上書き)
+CONFIG_FILE="$AWS_DIR/.poi-webhook-deploy.json"
 if [[ -f "$CONFIG_FILE" ]]; then
-  info "保存済み設定を読み込んでいます: $CONFIG_FILE"
-  while IFS='=' read -r key value; do
-    [[ "$key" =~ ^[[:space:]]*# ]] && continue
-    [[ -z "$key" ]] && continue
-    value="${value#\'}" ; value="${value%\'}"          # シングルクォート除去
-    [[ -z "${!key:-}" ]] && printf -v "$key" '%s' "$value"  # 未設定の場合のみセット
-  done < "$CONFIG_FILE"
+  info "保存済み設定を読み込みました: $CONFIG_FILE"
 fi
 
-# 入力ヘルパー: 保存済みの値があれば Enter でスキップ、入力すれば上書き
-ask_secret() {
-  local var_name="$1" prompt_text="$2" required="${3:-true}"
-  local val; eval val="\$$var_name"
-  if [[ -n "$val" ]]; then
-    local hint="${val:0:4}****"
-    read -rsp "${prompt_text} [${hint}] (Enter でそのまま): " new_val; echo
-    [[ -n "$new_val" ]] && val="$new_val"
-  else
-    read -rsp "${prompt_text}: " val; echo
-    if [[ -z "$val" ]]; then
-      [[ "$required" == true ]] && die "${var_name} が空です。"
-    fi
-  fi
-  eval "$var_name='$val'"
-}
-
-ask_plain() {
-  local var_name="$1" prompt_text="$2" required="${3:-true}"
-  local val; eval val="\$$var_name"
-  if [[ -n "$val" ]]; then
-    read -rp "${prompt_text} [${val}] (Enter でそのまま): " new_val
-    [[ -n "$new_val" ]] && val="$new_val"
-  else
-    read -rp "${prompt_text}: " val
-    [[ -z "$val" ]] && [[ "$required" == true ]] && die "${var_name} が空です。"
-  fi
-  eval "$var_name='$val'"
-}
-
-ask_secret PAYJP_SECRET_KEY     "PAY.JP シークレットキー (sk_live_... / sk_test_...)"
-ask_plain  PAYJP_PUBLIC_KEY     "PAY.JP 公開キー (pk_live_... / pk_test_...)"
-ask_plain  PAYJP_PRICE_1M       "PAY.JP v2 価格 ID — 1ヶ月プラン (price_...)"
-ask_plain  PAYJP_PRICE_6M       "PAY.JP v2 価格 ID — 6ヶ月プラン (price_...)"
-ask_plain  PAYJP_PRICE_12M      "PAY.JP v2 価格 ID — 12ヶ月プラン (price_...)"
-ask_secret PAYJP_WEBHOOK_SECRET "PAY.JP Webhook シークレット (whook_...) (空 Enter で後から設定)" false
-[[ -z "$PAYJP_WEBHOOK_SECRET" ]] && warn "PAYJP_WEBHOOK_SECRET が空です。デプロイ後に再デプロイして設定してください。"
-
-echo -e "\n${BOLD}=== Google ログイン設定（任意）===${RESET}"
+# -----------------------------------------------------------------------------
+# Google ログイン設定（任意）
+# -----------------------------------------------------------------------------
+echo ""
+echo "=== Google ログイン設定（任意）==="
 info "Google でのサインインを有効にするには Google OAuth クライアントを設定してください。"
 info "不要な場合は Enter でスキップします。"
-ask_plain  GOOGLE_CLIENT_ID     "Google OAuth クライアント ID (空 Enter でスキップ)" false
+
+GOOGLE_CLIENT_ID="$(get_value GOOGLE_CLIENT_ID "Google OAuth クライアント ID (空 Enter でスキップ)" 0 0)"
 if [[ -n "$GOOGLE_CLIENT_ID" ]]; then
-  ask_secret GOOGLE_CLIENT_SECRET "Google OAuth クライアントシークレット"
+  GOOGLE_CLIENT_SECRET="$(get_value GOOGLE_CLIENT_SECRET "Google OAuth クライアントシークレット" 1 1)"
 else
+  GOOGLE_CLIENT_SECRET=""
   warn "Google ログインをスキップしました。後から再デプロイして追加できます。"
 fi
 
-# キーのプレフィックス簡易チェック
-[[ "$PAYJP_SECRET_KEY"  != sk_*  ]] && warn "PAYJP_SECRET_KEY が sk_ で始まっていません。"
-[[ "$PAYJP_PUBLIC_KEY"  != pk_*  ]] && warn "PAYJP_PUBLIC_KEY が pk_ で始まっていません。"
-[[ -n "$PAYJP_PRICE_1M"  && "$PAYJP_PRICE_1M"  != price_* ]] && warn "PAYJP_PRICE_1M が price_ で始まっていません。"
-[[ -n "$PAYJP_PRICE_6M"  && "$PAYJP_PRICE_6M"  != price_* ]] && warn "PAYJP_PRICE_6M が price_ で始まっていません。"
-[[ -n "$PAYJP_PRICE_12M" && "$PAYJP_PRICE_12M" != price_* ]] && warn "PAYJP_PRICE_12M が price_ で始まっていません。"
+# -----------------------------------------------------------------------------
+# Apple Sign In 設定（任意）
+# -----------------------------------------------------------------------------
+echo ""
+echo "=== Apple Sign In 設定（任意）==="
+info "Sign in with Apple を有効にするには Apple Developer の資格情報を設定してください。"
+info "不要な場合は Enter でスキップします。"
 
-# 設定をファイルに保存 (chmod 600 = オーナーのみ読み取り可)
-cat > "$CONFIG_FILE" <<ENVEOF
-PAYJP_SECRET_KEY='${PAYJP_SECRET_KEY}'
-PAYJP_PUBLIC_KEY='${PAYJP_PUBLIC_KEY}'
-PAYJP_WEBHOOK_SECRET='${PAYJP_WEBHOOK_SECRET}'
-PAYJP_PRICE_1M='${PAYJP_PRICE_1M}'
-PAYJP_PRICE_6M='${PAYJP_PRICE_6M}'
-PAYJP_PRICE_12M='${PAYJP_PRICE_12M}'
-GOOGLE_CLIENT_ID='${GOOGLE_CLIENT_ID}'
-GOOGLE_CLIENT_SECRET='${GOOGLE_CLIENT_SECRET}'
-ENVEOF
+APPLE_SERVICE_ID="$(get_value APPLE_SERVICE_ID "Apple Services ID (空 Enter でスキップ)" 0 0)"
+if [[ -n "$APPLE_SERVICE_ID" ]]; then
+  APPLE_TEAM_ID="$(get_value APPLE_TEAM_ID "Apple Team ID" 0 1)"
+  APPLE_KEY_ID="$(get_value APPLE_KEY_ID "Apple Key ID" 0 1)"
+  APPLE_PRIVATE_KEY_PATH="$(get_value APPLE_PRIVATE_KEY_PATH "Apple 秘密鍵 (.p8 ファイルパス)" 0 1)"
+  [[ ! -f "$APPLE_PRIVATE_KEY_PATH" ]] && fail ".p8 ファイルが見つかりません: $APPLE_PRIVATE_KEY_PATH"
+  info ".p8 ファイルから秘密鍵を読み込みました"
+else
+  APPLE_TEAM_ID=""
+  APPLE_KEY_ID=""
+  APPLE_PRIVATE_KEY_PATH=""
+  warn "Apple Sign In をスキップしました。後から再デプロイして追加できます。"
+fi
+
+# -----------------------------------------------------------------------------
+# フェデレーションサインイン制限設定
+# -----------------------------------------------------------------------------
+GOOGLE_ONLY="false"
+if [[ -n "$GOOGLE_CLIENT_ID" || -n "$APPLE_SERVICE_ID" ]]; then
+  echo ""
+  echo "=== サインイン制限設定 ==="
+  info "フェデレーションサインイン (Google / Apple) 以外のログインを禁止できます。"
+  PREV_FED_ONLY="$(jq -r '.GOOGLE_ONLY // "false"' "$CONFIG_FILE" 2>/dev/null || echo "false")"
+  read -rp "フェデレーションサインイン以外を許可しない? (true/false) [$PREV_FED_ONLY] (Enter でそのまま): " FED_INPUT
+  GOOGLE_ONLY="${FED_INPUT:-$PREV_FED_ONLY}"
+fi
+
+# 設定を JSON で保存 (パーミッション 600 で保護)
+jq -n \
+  --arg gci  "$GOOGLE_CLIENT_ID" \
+  --arg gcs  "$GOOGLE_CLIENT_SECRET" \
+  --arg go   "$GOOGLE_ONLY" \
+  --arg asi  "$APPLE_SERVICE_ID" \
+  --arg ati  "$APPLE_TEAM_ID" \
+  --arg aki  "$APPLE_KEY_ID" \
+  --arg apkp "$APPLE_PRIVATE_KEY_PATH" \
+  '{
+    GOOGLE_CLIENT_ID:     $gci,
+    GOOGLE_CLIENT_SECRET: $gcs,
+    GOOGLE_ONLY:          $go,
+    APPLE_SERVICE_ID:     $asi,
+    APPLE_TEAM_ID:        $ati,
+    APPLE_KEY_ID:         $aki,
+    APPLE_PRIVATE_KEY_PATH: $apkp
+  }' > "$CONFIG_FILE"
 chmod 600 "$CONFIG_FILE"
-success "設定を保存しました: $CONFIG_FILE"
+success "設定を保存しました: $CONFIG_FILE (chmod 600)"
 
 # -----------------------------------------------------------------------------
 # npm install
 # -----------------------------------------------------------------------------
-echo -e "\n${BOLD}=== npm install ===${RESET}"
-npm install --prefer-offline
+echo ""
+echo "=== npm install ==="
+npm install --prefer-offline || fail "npm install が失敗しました。"
 success "npm install 完了"
 
 # -----------------------------------------------------------------------------
 # TypeScript ビルド確認
 # -----------------------------------------------------------------------------
-echo -e "\n${BOLD}=== TypeScript ビルド ===${RESET}"
-npx tsc --noEmit
+echo ""
+echo "=== TypeScript ビルド ==="
+npx tsc --noEmit || fail "TypeScript のビルドエラーがあります。修正してください。"
 success "TypeScript チェック完了"
 
-# jsii の Node.js バージョン未テスト警告を抑制 (動作には影響しない)
+# jsii の Node.js バージョン未テスト警告を抑制
 export JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1
-# CDK がリージョン・プロファイルを確実に認識するよう環境変数にも設定
-export AWS_PROFILE="$AWS_PROFILE"
-export AWS_DEFAULT_REGION="$AWS_REGION"
+export AWS_PROFILE="$PROFILE"
+export AWS_DEFAULT_REGION="$REGION"
 
-# -----------------------------------------------------------------------------
-# CDK Bootstrap
-# -----------------------------------------------------------------------------
-if [[ "$SKIP_BOOTSTRAP" == false ]]; then
-  echo -e "\n${BOLD}=== CDK Bootstrap ===${RESET}"
-  info "aws://${AWS_ACCOUNT}/${AWS_REGION} をブートストラップします..."
-  AWS_PROFILE="$AWS_PROFILE" npx cdk bootstrap \
-    "aws://${AWS_ACCOUNT}/${AWS_REGION}" \
-    --profile "$AWS_PROFILE" \
-    --region  "$AWS_REGION"
+if [[ "$SKIP_BOOTSTRAP" == "false" ]]; then
+  echo ""
+  echo "=== CDK Bootstrap ==="
+  info "aws://${AWS_ACCOUNT}/${REGION} をブートストラップします..."
+  npx cdk bootstrap "aws://${AWS_ACCOUNT}/${REGION}" \
+    --profile "$PROFILE" \
+    --region  "$REGION" || fail "CDK Bootstrap が失敗しました。"
   success "Bootstrap 完了"
 else
   warn "Bootstrap をスキップしました (--skip-bootstrap)"
 fi
 
 # -----------------------------------------------------------------------------
-# CDK Synth / Deploy
+# CDK パラメータ
 # -----------------------------------------------------------------------------
 CDK_PARAMS=(
-  "--parameters" "PayjpSecretKey=${PAYJP_SECRET_KEY}"
-  "--parameters" "PayjpPublicKey=${PAYJP_PUBLIC_KEY}"
-  "--parameters" "PayjpWebhookSecret=${PAYJP_WEBHOOK_SECRET}"
-  "--parameters" "PayjpPrice1m=${PAYJP_PRICE_1M}"
-  "--parameters" "PayjpPrice6m=${PAYJP_PRICE_6M}"
-  "--parameters" "PayjpPrice12m=${PAYJP_PRICE_12M}"
-  "--parameters" "GoogleClientId=${GOOGLE_CLIENT_ID}"
-  "--parameters" "GoogleClientSecret=${GOOGLE_CLIENT_SECRET}"
+  "--parameters" "GoogleClientId=$GOOGLE_CLIENT_ID"
+  "--parameters" "GoogleClientSecret=$GOOGLE_CLIENT_SECRET"
+  "--parameters" "GoogleOnly=$GOOGLE_ONLY"
+  "--parameters" "AppleServiceId=$APPLE_SERVICE_ID"
+  "--parameters" "AppleTeamId=$APPLE_TEAM_ID"
+  "--parameters" "AppleKeyId=$APPLE_KEY_ID"
+  "--parameters" "ApplePrivateKeyPath=$APPLE_PRIVATE_KEY_PATH"
 )
+if [[ -n "$APPLE_PRIVATE_KEY_PATH" ]]; then
+  RESOLVED_PATH="$(realpath "$APPLE_PRIVATE_KEY_PATH")"
+  CDK_PARAMS+=("-c" "applePrivateKeyPath=$RESOLVED_PATH")
+fi
 
-if [[ "$DRY_RUN" == true ]]; then
-  echo -e "\n${BOLD}=== CDK Synth (dry-run) ===${RESET}"
-  AWS_PROFILE="$AWS_PROFILE" npx cdk synth PoiWebhookStack \
-    --profile "$AWS_PROFILE" \
-    --region  "$AWS_REGION"  \
-    "${CDK_PARAMS[@]}"
+# -----------------------------------------------------------------------------
+# CDK Synth / Deploy
+# -----------------------------------------------------------------------------
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo ""
+  echo "=== CDK Synth (dry-run) ==="
+  npx cdk synth PoiWebhookStack --profile "$PROFILE" --region "$REGION" "${CDK_PARAMS[@]}"
   success "Synth 完了 (デプロイはスキップ)"
   exit 0
 fi
 
-echo -e "\n${BOLD}=== CDK Deploy ===${RESET}"
+echo ""
+echo "=== CDK Deploy ==="
 info "スタック: PoiWebhookStack"
-info "リージョン: $AWS_REGION  /  プロファイル: $AWS_PROFILE"
+info "リージョン: $REGION  /  プロファイル: $PROFILE"
 
 OUTPUTS_FILE="$AWS_DIR/aws-outputs.json"
 
-AWS_PROFILE="$AWS_PROFILE" npx cdk deploy PoiWebhookStack \
-  --profile         "$AWS_PROFILE" \
-  --region          "$AWS_REGION"  \
-  --require-approval never          \
-  --outputs-file    "$OUTPUTS_FILE" \
-  "${CDK_PARAMS[@]}"
+npx cdk deploy PoiWebhookStack \
+  --profile          "$PROFILE" \
+  --region           "$REGION"  \
+  --require-approval never      \
+  --outputs-file     "$OUTPUTS_FILE" \
+  "${CDK_PARAMS[@]}" || fail "CDK Deploy が失敗しました。"
 
-# src/ にコピー（プラグイン起動時に自動読み込み）
-# PayjpWebhookUrl はセットアップ専用のため除外する
-SRC_DIR="$AWS_DIR/../src"
+# src/ にコピー
+SRC_DIR="$(dirname "$AWS_DIR")/src"
 if [[ -f "$OUTPUTS_FILE" && -d "$SRC_DIR" ]]; then
-  node -e "
-    const fs = require('fs');
-    const data = JSON.parse(fs.readFileSync('$OUTPUTS_FILE', 'utf8'));
-    const stack = Object.keys(data)[0];
-    if (stack) delete data[stack].PayjpWebhookUrl;
-    fs.writeFileSync('$SRC_DIR/aws-outputs.json', JSON.stringify(data, null, 2));
-  "
-  success "CDK Outputs を src/aws-outputs.json にコピーしました (PayjpWebhookUrl を除外)"
+  cp "$OUTPUTS_FILE" "$SRC_DIR/aws-outputs.json"
+  success "CDK Outputs を src/aws-outputs.json にコピーしました"
+fi
+
+# mobile-app/ にコピー
+MOBILE_APP_DIR="$(dirname "$AWS_DIR")/mobile-app"
+if [[ -f "$OUTPUTS_FILE" && -d "$MOBILE_APP_DIR" ]]; then
+  cp "$OUTPUTS_FILE" "$MOBILE_APP_DIR/aws-outputs.json"
+  success "CDK Outputs を mobile-app/aws-outputs.json にコピーしました"
 fi
 
 # -----------------------------------------------------------------------------
 # デプロイ後: Outputs 表示
 # -----------------------------------------------------------------------------
-echo -e "\n${BOLD}=== デプロイ結果 ===${RESET}"
-OUTPUTS=$(aws cloudformation describe-stacks \
+echo ""
+echo "=== デプロイ結果 ==="
+
+OUTPUTS="$(aws cloudformation describe-stacks \
   --stack-name PoiWebhookStack \
-  --profile "$AWS_PROFILE"  \
-  --region  "$AWS_REGION"   \
-  --query  "Stacks[0].Outputs" \
-  --output json)
+  --profile    "$PROFILE" \
+  --region     "$REGION"  \
+  --query      'Stacks[0].Outputs' \
+  --output     json)"
 
-echo "$OUTPUTS" | grep -o '"OutputKey": *"[^"]*"\|"OutputValue": *"[^"]*"' \
-  | paste - - \
-  | sed 's/"OutputKey": *"\([^"]*\)"\t"OutputValue": *"\([^"]*\)"/  \1 = \2/'
-
-API_URL=$(echo "$OUTPUTS" | grep -o '"OutputValue": *"https://[^"]*"' | head -1 | grep -o 'https://[^"]*')
+echo "$OUTPUTS" | jq -r '.[] | "  \(.OutputKey)  = \(.OutputValue)"'
 
 echo ""
 success "デプロイ完了!"
 success "CDK Outputs を保存しました: $OUTPUTS_FILE"
-info  "  → poi プラグインを再起動すると AWS モードの設定が自動入力されます"
+info "  → poi プラグインを再起動すると AWS モードの設定が自動入力されます"
 echo ""
-echo -e "${BOLD}次のステップ:${RESET}"
-echo -e "  1. PAY.JP v2 ダッシュボードで Webhook を登録してください:"
-echo -e "     URL   : ${CYAN}${API_URL}payjp/webhook${RESET}"
-echo -e "     イベント: checkout.session.completed"
-echo -e "     ※ Webhook トークン (whook_...) を PAYJP_WEBHOOK_SECRET に設定して再デプロイしてください"
-echo -e "  2. poi を再起動してプラグインを開き、AWS モードを選択してログインしてください"
+echo "次のステップ:"
+echo "  1. poi を再起動してプラグインを開き、AWS モードを選択してログインしてください"
 echo ""
