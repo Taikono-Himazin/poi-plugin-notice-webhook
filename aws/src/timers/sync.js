@@ -204,6 +204,7 @@ exports.handler = async (event) => {
     );
 
     const pushTokens = (pushTokensRes.Items || []).map((item) => item.pushToken);
+    console.log('[push] tokens found:', pushTokens.length);
 
     if (pushTokens.length > 0) {
       const messages = pushTokens.map((token) => ({
@@ -222,6 +223,7 @@ exports.handler = async (event) => {
 
       // 無効なトークンをクリーンアップ
       const pushResult = await pushRes.json();
+      console.log('[push] Expo API response:', JSON.stringify(pushResult));
       if (pushResult.data) {
         for (let i = 0; i < pushResult.data.length; i++) {
           if (pushResult.data[i].status === 'error' && pushResult.data[i].details?.error === 'DeviceNotRegistered') {
@@ -237,8 +239,9 @@ exports.handler = async (event) => {
         }
       }
     }
-  } catch {
+  } catch (err) {
     // サイレントプッシュの失敗はタイマー同期に影響させない
+    console.error('[push] silent push failed:', err);
   }
 
   return ok({ ok: true, scheduled });
