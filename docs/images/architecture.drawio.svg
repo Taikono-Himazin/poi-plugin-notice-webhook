@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"
+     width="820" height="480" viewBox="-0.5 -0.5 820 480"
+     content="&lt;mxfile&gt;&lt;diagram name=&quot;architecture&quot;&gt;&lt;mxGraphModel&gt;&lt;root&gt;&lt;mxCell id=&quot;0&quot;/&gt;&lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;">
+  <defs/>
+  <g>
+    <!-- Background -->
+    <rect x="0" y="0" width="820" height="480" fill="#0f0f1a" rx="12"/>
+
+    <!-- User Devices group -->
+    <rect x="20" y="20" width="220" height="440" rx="10" fill="none" stroke="#5865f2" stroke-width="2" stroke-dasharray="6 3"/>
+    <text x="130" y="48" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#5865f2">ユーザー端末</text>
+
+    <!-- poi plugin -->
+    <rect x="40" y="70" width="180" height="60" rx="8" fill="#1e1e30" stroke="#5865f2" stroke-width="1.5"/>
+    <text x="130" y="96" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#fff">poi プラグイン</text>
+    <text x="130" y="116" text-anchor="middle" font-family="Arial" font-size="11" fill="#888">ゲーム API 解析</text>
+
+    <!-- Mobile app -->
+    <rect x="40" y="160" width="180" height="60" rx="8" fill="#1e1e30" stroke="#57f287" stroke-width="1.5"/>
+    <text x="130" y="186" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#fff">モバイルアプリ</text>
+    <text x="130" y="206" text-anchor="middle" font-family="Arial" font-size="11" fill="#888">iOS / Android</text>
+
+    <!-- Widget -->
+    <rect x="40" y="250" width="180" height="50" rx="8" fill="#1e1e30" stroke="#fee75c" stroke-width="1.5"/>
+    <text x="130" y="280" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#fff">ウィジェット (iOS)</text>
+
+    <!-- Direct delivery arrows -->
+    <text x="130" y="340" text-anchor="middle" font-family="Arial" font-size="11" fill="#aaa">直接配信</text>
+    <line x1="130" y1="350" x2="130" y2="430" stroke="#888" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <polygon points="125,425 130,435 135,425" fill="#888"/>
+
+    <!-- Discord/Slack (bottom left) -->
+    <rect x="40" y="390" width="180" height="50" rx="8" fill="#5865f2"/>
+    <text x="130" y="420" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#fff">Discord / Slack</text>
+
+    <!-- AWS group -->
+    <rect x="280" y="20" width="340" height="440" rx="10" fill="none" stroke="#ff9900" stroke-width="2" stroke-dasharray="6 3"/>
+    <text x="450" y="48" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#ff9900">AWS</text>
+
+    <!-- Cognito -->
+    <rect x="300" y="70" width="140" height="50" rx="8" fill="#1e1e30" stroke="#ff9900" stroke-width="1.5"/>
+    <text x="370" y="100" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">Cognito 認証</text>
+
+    <!-- API Gateway -->
+    <rect x="300" y="150" width="140" height="50" rx="8" fill="#1e1e30" stroke="#ff9900" stroke-width="1.5"/>
+    <text x="370" y="180" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">API Gateway</text>
+
+    <!-- Timer Sync Lambda -->
+    <rect x="300" y="230" width="140" height="50" rx="8" fill="#1e1e30" stroke="#ff9900" stroke-width="1.5"/>
+    <text x="370" y="252" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">タイマー同期</text>
+    <text x="370" y="270" text-anchor="middle" font-family="Arial" font-size="11" fill="#888">Lambda</text>
+
+    <!-- DynamoDB -->
+    <rect x="480" y="150" width="120" height="50" rx="8" fill="#1e1e30" stroke="#3b48cc" stroke-width="1.5"/>
+    <text x="540" y="180" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">DynamoDB</text>
+
+    <!-- EventBridge -->
+    <rect x="480" y="230" width="120" height="50" rx="8" fill="#1e1e30" stroke="#ff9900" stroke-width="1.5"/>
+    <text x="540" y="252" text-anchor="middle" font-family="Arial" font-size="11" font-weight="bold" fill="#fff">EventBridge</text>
+    <text x="540" y="270" text-anchor="middle" font-family="Arial" font-size="11" fill="#888">Scheduler</text>
+
+    <!-- Deliver Lambda -->
+    <rect x="380" y="320" width="140" height="50" rx="8" fill="#1e1e30" stroke="#ff9900" stroke-width="1.5"/>
+    <text x="450" y="342" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">通知配信</text>
+    <text x="450" y="360" text-anchor="middle" font-family="Arial" font-size="11" fill="#888">Lambda</text>
+
+    <!-- Discord/Slack (AWS side) -->
+    <rect x="380" y="400" width="140" height="50" rx="8" fill="#5865f2"/>
+    <text x="450" y="430" text-anchor="middle" font-family="Arial" font-size="13" font-weight="bold" fill="#fff">Discord / Slack</text>
+
+    <!-- Expo Push API -->
+    <rect x="660" y="150" width="140" height="60" rx="8" fill="#1e1e30" stroke="#4630eb" stroke-width="1.5"/>
+    <text x="730" y="176" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="#fff">Expo Push API</text>
+    <text x="730" y="196" text-anchor="middle" font-family="Arial" font-size="11" fill="#888">APNs / FCM</text>
+
+    <!-- Arrows: poi → API Gateway -->
+    <line x1="220" y1="100" x2="298" y2="170" stroke="#5865f2" stroke-width="1.5"/>
+    <polygon points="293,165 298,170 290,172" fill="#5865f2"/>
+    <text x="255" y="125" text-anchor="middle" font-family="Arial" font-size="10" fill="#5865f2">PUT /timers</text>
+
+    <!-- App → API Gateway -->
+    <line x1="220" y1="190" x2="298" y2="178" stroke="#57f287" stroke-width="1.5"/>
+    <polygon points="293,174 298,178 292,182" fill="#57f287"/>
+    <text x="255" y="196" text-anchor="middle" font-family="Arial" font-size="10" fill="#57f287">GET /timers</text>
+
+    <!-- App → Widget -->
+    <line x1="130" y1="220" x2="130" y2="248" stroke="#fee75c" stroke-width="1.5"/>
+    <polygon points="125,244 130,252 135,244" fill="#fee75c"/>
+
+    <!-- API GW → Lambda -->
+    <line x1="370" y1="200" x2="370" y2="228" stroke="#ff9900" stroke-width="1.5"/>
+    <polygon points="365,224 370,232 375,224" fill="#ff9900"/>
+
+    <!-- Lambda → DynamoDB -->
+    <line x1="440" y1="255" x2="478" y2="180" stroke="#3b48cc" stroke-width="1.5"/>
+    <polygon points="473,178 480,178 476,185" fill="#3b48cc"/>
+
+    <!-- Lambda → EventBridge -->
+    <line x1="440" y1="255" x2="478" y2="255" stroke="#ff9900" stroke-width="1.5"/>
+    <polygon points="474,250 482,255 474,260" fill="#ff9900"/>
+
+    <!-- Lambda → Expo Push -->
+    <line x1="440" y1="245" x2="658" y2="185" stroke="#4630eb" stroke-width="1.5"/>
+    <polygon points="653,182 660,183 655,190" fill="#4630eb"/>
+    <text x="550" y="205" text-anchor="middle" font-family="Arial" font-size="10" fill="#4630eb">サイレントプッシュ</text>
+
+    <!-- Expo → Mobile App -->
+    <line x1="660" y1="190" x2="222" y2="190" stroke="#4630eb" stroke-width="1.5"/>
+    <polygon points="226,185 220,190 226,195" fill="#4630eb"/>
+
+    <!-- EventBridge → Deliver Lambda -->
+    <line x1="520" y1="280" x2="470" y2="318" stroke="#ff9900" stroke-width="1.5"/>
+    <polygon points="466,313 468,320 475,316" fill="#ff9900"/>
+
+    <!-- Deliver → Discord/Slack -->
+    <line x1="450" y1="370" x2="450" y2="398" stroke="#5865f2" stroke-width="1.5"/>
+    <polygon points="445,394 450,402 455,394" fill="#5865f2"/>
+
+    <!-- Login arrows (dashed) -->
+    <line x1="200" y1="80" x2="298" y2="90" stroke="#888" stroke-width="1" stroke-dasharray="4 3"/>
+    <line x1="200" y1="170" x2="298" y2="100" stroke="#888" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="260" y="78" text-anchor="middle" font-family="Arial" font-size="9" fill="#888">認証</text>
+  </g>
+</svg>

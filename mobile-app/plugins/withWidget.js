@@ -111,15 +111,17 @@ function withWidget(config) {
     const mainGroupId = proj.getFirstProject().firstProject.mainGroup;
     proj.addToPbxGroup(groupKey, mainGroupId);
 
-    // Add Swift source files to the target
+    // Add Swift source files ONLY to the widget target (not the main app)
     const swiftFiles = ['PoiNoticeWidget.swift', 'WidgetBundle.swift'];
     for (const file of swiftFiles) {
-      proj.addSourceFile(
-        `${WIDGET_NAME}/${file}`,
-        { target: target.uuid },
-        groupKey,
-      );
+      proj.addFile(`${WIDGET_NAME}/${file}`, groupKey);
     }
+    proj.addBuildPhase(
+      swiftFiles.map((f) => `${WIDGET_NAME}/${f}`),
+      'PBXSourcesBuildPhase',
+      'Sources',
+      target.uuid,
+    );
 
     // Update build settings for all configurations of the widget target
     const configs = proj.pbxXCBuildConfigurationSection();
@@ -142,6 +144,7 @@ function withWidget(config) {
           MARKETING_VERSION: '1.0',
           CURRENT_PROJECT_VERSION: '1',
           CODE_SIGN_STYLE: 'Automatic',
+          DEVELOPMENT_TEAM: '9ZKFA3GTJ7',
           PRODUCT_NAME: `"$(TARGET_NAME)"`,
           SKIP_INSTALL: 'YES',
           SWIFT_EMIT_LOC_STRINGS: 'YES',

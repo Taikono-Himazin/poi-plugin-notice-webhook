@@ -17,7 +17,8 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "image": "sdk-54"
       },
       "android": {
         "buildType": "app-bundle"

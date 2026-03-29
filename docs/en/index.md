@@ -51,38 +51,7 @@ Push notifications directly to your smartphone — works with Cloud mode. No Web
 
 ## Architecture
 
-```mermaid
-graph LR
-    subgraph User Devices
-        POI[poi Plugin]
-        APP[Mobile App<br/>iOS / Android]
-    end
-
-    subgraph AWS
-        APIGW[API Gateway]
-        COGNITO[Cognito Auth]
-        DYNAMO[(DynamoDB)]
-        SCHEDULER[EventBridge Scheduler]
-        LAMBDA[Lambda]
-    end
-
-    DISCORD[Discord]
-    SLACK[Slack]
-    EXPO[Expo Push API]
-
-    POI -- "PUT /timers" --> APIGW
-    APP -- "GET /timers" --> APIGW
-    APIGW --> LAMBDA
-    LAMBDA --> DYNAMO
-    LAMBDA -- "Silent Push" --> EXPO
-    EXPO --> APP
-    LAMBDA --> SCHEDULER
-    SCHEDULER --> LAMBDA
-    LAMBDA --> DISCORD
-    LAMBDA --> SLACK
-    POI -- "Direct" --> DISCORD
-    POI -- "Direct" --> SLACK
-```
+![Architecture diagram](../images/architecture.drawio.svg)
 
 ## Notification Events
 
@@ -91,6 +60,17 @@ graph LR
 | Expedition complete | At completion (or just before) |
 | Repair complete | At completion (or just before) |
 | Construction complete | At completion (or just before) |
+
+## Source Code
+
+## Table of Contents
+
+| Page | Description |
+|---|---|
+| [Usage](usage) | Plugin settings and operation guide |
+| [API Reference](api) | REST API endpoint reference |
+| [Privacy Policy](privacy) | How we handle your data |
+| [Terms of Service](terms) | Service terms and conditions |
 
 ## Source Code
 

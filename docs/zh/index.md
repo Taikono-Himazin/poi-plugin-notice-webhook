@@ -51,38 +51,7 @@ nav_order: 1
 
 ## 架构
 
-```mermaid
-graph LR
-    subgraph 用户设备
-        POI[poi 插件]
-        APP[移动应用<br/>iOS / Android]
-    end
-
-    subgraph AWS
-        APIGW[API Gateway]
-        COGNITO[Cognito 认证]
-        DYNAMO[(DynamoDB)]
-        SCHEDULER[EventBridge Scheduler]
-        LAMBDA[Lambda]
-    end
-
-    DISCORD[Discord]
-    SLACK[Slack]
-    EXPO[Expo Push API]
-
-    POI -- "PUT /timers" --> APIGW
-    APP -- "GET /timers" --> APIGW
-    APIGW --> LAMBDA
-    LAMBDA --> DYNAMO
-    LAMBDA -- "静默推送" --> EXPO
-    EXPO --> APP
-    LAMBDA --> SCHEDULER
-    SCHEDULER --> LAMBDA
-    LAMBDA --> DISCORD
-    LAMBDA --> SLACK
-    POI -- "直接配送" --> DISCORD
-    POI -- "直接配送" --> SLACK
-```
+![架构图](../images/architecture.drawio.svg)
 
 ## 通知内容
 
@@ -91,6 +60,17 @@ graph LR
 | 远征完成 | 完成时（或之前） |
 | 入渠完成 | 完成时（或之前） |
 | 建造完成 | 完成时（或之前） |
+
+## 源代码
+
+## 目录
+
+| 页面 | 说明 |
+|---|---|
+| [使用方法](usage) | 插件的设置和操作方法 |
+| [API 参考](api) | REST API 端点一览 |
+| [隐私政策](privacy) | 个人信息处理方式 |
+| [服务条款](terms) | 服务使用条件 |
 
 ## 源代码
 

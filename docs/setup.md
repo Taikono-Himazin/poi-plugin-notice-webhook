@@ -68,44 +68,7 @@ cd scripts
 
 ## 構成される AWS リソース
 
-```mermaid
-graph TB
-    subgraph "API Gateway (REST)"
-        direction LR
-        EP1["POST /webhooks/{token}<br/>通知受信（認証不要）"]
-        EP2["PUT /timers — タイマー同期<br/>GET /timers — タイマー取得"]
-        EP3["GET|PUT /account/config<br/>DELETE /account"]
-        EP4["PUT|DELETE /push-tokens"]
-        EP5["POST|GET /tokens<br/>DELETE /tokens/{token}"]
-    end
-
-    subgraph "DynamoDB"
-        T1[(accounts)]
-        T2[(tokens)]
-        T3[(notifications)]
-        T4[(timers)]
-        T5[(push-tokens)]
-        T6[(stats)]
-        T7[(errors)]
-    end
-
-    subgraph "認証"
-        COGNITO[Cognito User Pool<br/>Managed Login]
-    end
-
-    subgraph "スケジューリング"
-        EB[EventBridge Scheduler]
-        DELIVER[通知配信 Lambda]
-    end
-
-    EP2 --> T4
-    EP3 --> T1
-    EP4 --> T5
-    EP2 -- "サイレントプッシュ" --> EXPO[Expo Push API]
-    EB --> DELIVER
-    DELIVER --> T3
-    DELIVER --> DISCORD[Discord / Slack]
-```
+![AWS リソース構成](images/architecture.drawio.svg)
 
 ### エンドポイント一覧
 
