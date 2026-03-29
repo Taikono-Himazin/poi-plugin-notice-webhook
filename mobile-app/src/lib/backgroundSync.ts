@@ -6,12 +6,13 @@ import { refreshTokens } from './auth';
 import { fetchTimers } from './api';
 import { scheduleTimerNotifications } from './notifications';
 import { syncWidgetData } from './widgetSync';
+import { appendSyncLog } from './syncLog';
 
 export const BACKGROUND_SYNC_TASK = 'poi-notice-background-sync';
 export const BACKGROUND_NOTIFICATION_TASK = 'poi-notice-background-notification';
 
 // ---- 共通同期ロジック ----
-async function performSync(): Promise<void> {
+async function performSync(source: 'foreground' | 'background' | 'push'): Promise<void> {
   let jwt: string | null = null;
 
   const isValid = await Storage.isJwtValid();
@@ -29,21 +30,28 @@ async function performSync(): Promise<void> {
   const settings = await Storage.getNotifySettings();
 
   const now = Date.now();
-  await Promise.all([
+  const [, , , widgetSynced] = await Promise.all([
     Storage.setTimersCache(timers),
     Storage.setLastSync(now),
     scheduleTimerNotifications(timers, settings),
     syncWidgetData(timers, now),
   ]);
+
+  await appendSyncLog({ source, success: true, timerCount: timers.length, widgetSynced });
 }
 
 // ---- タスク定義（モジュール読み込み時に登録される）----
 // App.tsx で import されることで定義が確実に実行される。
 TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
   try {
-    await performSync();
+    await performSync('background');
     return BackgroundTask.BackgroundTaskResult.Success;
-  } catch {
+  } catch (e) {
+    await appendSyncLog({
+      source: 'background',
+      success: false,
+      error: e instanceof Error ? e.message : String(e),
+    });
     return BackgroundTask.BackgroundTaskResult.Failed;
   }
 });
@@ -54,9 +62,13 @@ TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data }) => {
   if (notification?.body?.data?.type !== 'timer-sync') return;
 
   try {
-    await performSync();
-  } catch {
-    // サイレントに失敗 — 次回のバックグラウンドタスクでリトライ
+    await performSync('push');
+  } catch (e) {
+    await appendSyncLog({
+      source: 'push',
+      success: false,
+      error: e instanceof Error ? e.message : String(e),
+    });
   }
 });
 

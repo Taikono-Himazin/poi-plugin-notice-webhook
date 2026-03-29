@@ -42,10 +42,19 @@ struct ActiveTimer {
 
 // MARK: - Timeline Entry
 
+enum WidgetDiagState: String {
+    case ok = ""
+    case noDefaults = "App Group NG"
+    case noData = "未同期"
+    case decodeFailed = "データ不正"
+    case allExpired = "全タイマー完了"
+}
+
 struct PoiEntry: TimelineEntry {
     let date: Date
     let timers: [ActiveTimer]
     let lastSync: Date?
+    var diag: WidgetDiagState = .ok
 }
 
 // MARK: - Timeline Provider
@@ -62,18 +71,39 @@ struct PoiTimelineProvider: TimelineProvider {
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<PoiEntry>) -> Void) {
-        let entry = loadEntry()
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 5, to: Date())!
-        completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+        let (allTimers, lastSyncDate, diag) = loadTimers()
+        let now = Date()
+
+        // タイマー完了時刻ごとにエントリを生成し、完了したタイマーを順次除外する
+        var entries: [PoiEntry] = []
+        var remaining = allTimers
+
+        // 現在の状態
+        entries.append(PoiEntry(date: now, timers: remaining, lastSync: lastSyncDate, diag: diag))
+
+        // 各タイマー完了時点のエントリ（完了したものを除外した状態）
+        let expirations = remaining.map(\.completesAt).sorted()
+        for expireDate in expirations {
+            remaining = remaining.filter { $0.completesAt > expireDate }
+            let d: WidgetDiagState = remaining.isEmpty ? .allExpired : .ok
+            entries.append(PoiEntry(date: expireDate, timers: remaining, lastSync: lastSyncDate, diag: d))
+        }
+
+        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: now)!
+        completion(Timeline(entries: entries, policy: .after(nextUpdate)))
     }
 
-    private func loadEntry() -> PoiEntry {
-        guard let defaults = UserDefaults(suiteName: appGroupId),
-              let jsonString = defaults.string(forKey: "widgetTimers"),
-              let data = jsonString.data(using: .utf8),
+    private func loadTimers() -> (timers: [ActiveTimer], lastSync: Date?, diag: WidgetDiagState) {
+        guard let defaults = UserDefaults(suiteName: appGroupId) else {
+            return ([], nil, .noDefaults)
+        }
+        guard let jsonString = defaults.string(forKey: "widgetTimers") else {
+            return ([], nil, .noData)
+        }
+        guard let data = jsonString.data(using: .utf8),
               let widgetData = try? JSONDecoder().decode(WidgetTimerData.self, from: data)
         else {
-            return PoiEntry(date: Date(), timers: [], lastSync: nil)
+            return ([], nil, .decodeFailed)
         }
 
         let now = Date()
@@ -92,7 +122,13 @@ struct PoiTimelineProvider: TimelineProvider {
             .sorted { $0.completesAt < $1.completesAt }
 
         let lastSyncDate = widgetData.lastSync.map { Date(timeIntervalSince1970: $0 / 1000) }
-        return PoiEntry(date: now, timers: activeTimers, lastSync: lastSyncDate)
+        let diag: WidgetDiagState = activeTimers.isEmpty && !widgetData.timers.isEmpty ? .allExpired : .ok
+        return (activeTimers, lastSyncDate, diag)
+    }
+
+    private func loadEntry() -> PoiEntry {
+        let (timers, lastSync, diag) = loadTimers()
+        return PoiEntry(date: Date(), timers: timers, lastSync: lastSync, diag: diag)
     }
 }
 
@@ -132,11 +168,19 @@ struct SmallWidgetView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Image(systemName: "bell.slash")
                     .font(.title2).foregroundColor(.gray)
                 Text("タイマーなし")
                     .font(.caption).foregroundColor(.gray)
+                if entry.diag != .ok {
+                    Text(entry.diag.rawValue)
+                        .font(.system(size: 9)).foregroundColor(.orange)
+                }
+                if let sync = entry.lastSync {
+                    Text(sync, style: .relative)
+                        .font(.system(size: 9)).foregroundColor(Color(white: 0.4))
+                }
             }
         }
     }
@@ -149,11 +193,19 @@ struct MediumWidgetView: View {
         if entry.timers.isEmpty {
             HStack {
                 Spacer()
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     Image(systemName: "bell.slash")
                         .font(.title2).foregroundColor(.gray)
                     Text("進行中のタイマーなし")
                         .font(.caption).foregroundColor(.gray)
+                    if entry.diag != .ok {
+                        Text(entry.diag.rawValue)
+                            .font(.system(size: 10)).foregroundColor(.orange)
+                    }
+                    if let sync = entry.lastSync {
+                        Text("同期: ").font(.system(size: 10)).foregroundColor(Color(white: 0.4))
+                        + Text(sync, style: .relative).font(.system(size: 10)).foregroundColor(Color(white: 0.4))
+                    }
                 }
                 Spacer()
             }
