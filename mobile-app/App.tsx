@@ -1,10 +1,11 @@
 // バックグラウンドタスクをモジュール読み込み時に定義させる（最初に import する）
 import './src/lib/backgroundSync'
 
-import React, { useState, useEffect } from 'react'
-import { View, ActivityIndicator } from 'react-native'
+import React, { useState, useEffect, useCallback } from 'react'
+import { View, ActivityIndicator, Alert } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import * as WebBrowser from 'expo-web-browser'
+import * as Updates from 'expo-updates'
 import { Storage, loadConfigFromOutputs } from './src/lib/storage'
 import { requestPermissions } from './src/lib/notifications'
 import { registerBackgroundSync, registerBackgroundNotificationTask } from './src/lib/backgroundSync'
@@ -60,6 +61,30 @@ export default function App() {
     }
     init()
   }, [])
+
+  // OTA アップデートチェック（起動時）
+  const checkForUpdate = useCallback(async () => {
+    if (__DEV__) return;
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (!update.isAvailable) return;
+      await Updates.fetchUpdateAsync();
+      Alert.alert(
+        'アップデート',
+        '新しいバージョンが利用可能です。再起動して適用しますか？',
+        [
+          { text: 'あとで', style: 'cancel' },
+          { text: '再起動', onPress: () => Updates.reloadAsync() },
+        ],
+      );
+    } catch {
+      // アップデートチェックの失敗はアプリ動作に影響させない
+    }
+  }, []);
+
+  useEffect(() => {
+    checkForUpdate();
+  }, [checkForUpdate]);
 
   const handleLogin = async () => {
     setIsLoggedIn(true)

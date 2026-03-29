@@ -7,6 +7,8 @@
 #   ./eas-publish.sh --platform ios
 #   ./eas-publish.sh --platform android --skip-submit
 #   ./eas-publish.sh --skip-build --platform ios
+#   ./eas-publish.sh --ota-only                          # OTA のみ公開
+#   ./eas-publish.sh --ota-only --ota-message "バグ修正"  # メッセージ付き
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -25,6 +27,8 @@ PLATFORM="all"
 PROFILE="production"
 SKIP_BUILD=false
 SKIP_SUBMIT=false
+OTA_ONLY=false
+OTA_MESSAGE=""
 NON_INTERACTIVE=false
 
 while [[ $# -gt 0 ]]; do
@@ -33,6 +37,8 @@ while [[ $# -gt 0 ]]; do
     --profile)         PROFILE="$2";         shift 2 ;;
     --skip-build)      SKIP_BUILD=true;      shift ;;
     --skip-submit)     SKIP_SUBMIT=true;     shift ;;
+    --ota-only)        OTA_ONLY=true;        shift ;;
+    --ota-message)     OTA_MESSAGE="$2";     shift 2 ;;
     --non-interactive) NON_INTERACTIVE=true;  shift ;;
     *) fail "不明なオプション: $1" ;;
   esac
@@ -94,10 +100,15 @@ info "アプリバージョン: $APP_VERSION"
 # -----------------------------------------------------------------------------
 if [[ "$NON_INTERACTIVE" == "false" ]]; then
   echo ""
+  if [[ "$OTA_ONLY" == "true" ]]; then
+    echo "  モード           : OTA アップデートのみ"
+  else
+    echo "  ビルド           : $( [[ "$SKIP_BUILD" == "false" ]] && echo true || echo false )"
+    echo "  ストア提出       : $( [[ "$SKIP_SUBMIT" == "false" ]] && echo true || echo false )"
+  fi
   echo "  プラットフォーム : $PLATFORM"
   echo "  プロファイル     : $PROFILE"
-  echo "  ビルド           : $( [[ "$SKIP_BUILD" == "false" ]] && echo true || echo false )"
-  echo "  ストア提出       : $( [[ "$SKIP_SUBMIT" == "false" ]] && echo true || echo false )"
+  [[ -n "$OTA_MESSAGE" ]] && echo "  OTA メッセージ   : $OTA_MESSAGE"
   echo ""
   read -rp "続行しますか? (y/N) " CONFIRM
   case "$CONFIRM" in
@@ -111,6 +122,28 @@ if [[ "$PLATFORM" == "all" ]]; then
   PLATFORMS=(ios android)
 else
   PLATFORMS=("$PLATFORM")
+fi
+
+# -----------------------------------------------------------------------------
+# OTA のみモード
+# -----------------------------------------------------------------------------
+if [[ "$OTA_ONLY" == "true" ]]; then
+  echo ""
+  echo "=== EAS Update (OTA) ==="
+
+  UPDATE_ARGS=(--channel "$PROFILE")
+  [[ -n "$OTA_MESSAGE" ]] && UPDATE_ARGS+=(--message "$OTA_MESSAGE")
+  [[ "$NON_INTERACTIVE" == "true" ]] && UPDATE_ARGS+=(--non-interactive)
+
+  if [[ "$PLATFORM" == "all" ]]; then
+    info "OTA 公開: all ($PROFILE)"
+    eas update "${UPDATE_ARGS[@]}" || fail "EAS Update が失敗しました。"
+  else
+    info "OTA 公開: $PLATFORM ($PROFILE)"
+    eas update --platform "$PLATFORM" "${UPDATE_ARGS[@]}" || fail "EAS Update ($PLATFORM) が失敗しました。"
+  fi
+  success "OTA アップデート公開完了 (v$APP_VERSION)"
+  exit 0
 fi
 
 # -----------------------------------------------------------------------------
@@ -159,4 +192,5 @@ for p in "${PLATFORMS[@]}"; do
     android) echo "  - Android: Google Play Console でビルドを確認してください" ;;
   esac
 done
+echo "  - OTA アップデート: ./eas-publish.sh --ota-only"
 echo ""

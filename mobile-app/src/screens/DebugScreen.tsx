@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl, Alert } from 'react-native';
 import Constants from 'expo-constants';
 import * as Updates from 'expo-updates';
 import * as TaskManager from 'expo-task-manager';
@@ -44,6 +44,7 @@ export default function DebugScreen({ onBack }: Props) {
   const [syncLog, setSyncLog] = useState<SyncLogEntry[]>([]);
   const [bgSyncRegistered, setBgSyncRegistered] = useState<boolean | null>(null);
   const [bgNotifRegistered, setBgNotifRegistered] = useState<boolean | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [diag, log, bgSync, bgNotif] = await Promise.all([
@@ -74,6 +75,31 @@ export default function DebugScreen({ onBack }: Props) {
     setSyncLog([]);
   }, []);
 
+  const handleCheckUpdate = useCallback(async () => {
+    if (__DEV__) {
+      setUpdateStatus('開発モード (スキップ)');
+      return;
+    }
+    setUpdateStatus('確認中...');
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (!update.isAvailable) {
+        setUpdateStatus('最新です');
+        return;
+      }
+      setUpdateStatus('ダウンロード中...');
+      await Updates.fetchUpdateAsync();
+      setUpdateStatus('適用可能');
+      Alert.alert('アップデート', '新しいバージョンをダウンロードしました。再起動して適用しますか？', [
+        { text: 'あとで', style: 'cancel' },
+        { text: '再起動', onPress: () => Updates.reloadAsync() },
+      ]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setUpdateStatus(`エラー: ${msg}`);
+    }
+  }, []);
+
   return (
     <ScrollView
       style={styles.container}
@@ -89,12 +115,18 @@ export default function DebugScreen({ onBack }: Props) {
 
       {/* バージョン情報 */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>バージョン</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>バージョン</Text>
+          <TouchableOpacity onPress={handleCheckUpdate}>
+            <Text style={styles.updateCheckText}>アップデート確認</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.card}>
           <DiagRow label="アプリ" value={`v${APP_VERSION}`} />
           <DiagRow label="ランタイム" value={Updates.runtimeVersion ?? '-'} />
           <DiagRow label="Update ID" value={Updates.updateId ? Updates.updateId.slice(0, 8) : 'embedded'} />
           <DiagRow label="チャンネル" value={Updates.channel ?? '-'} />
+          {updateStatus && <DiagRow label="状態" value={updateStatus} />}
         </View>
       </View>
 
@@ -239,6 +271,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   clearText: { color: '#ff6b6b', fontSize: 12 },
+  updateCheckText: { color: '#5865f2', fontSize: 12 },
   card: { backgroundColor: '#1e1e30', borderRadius: 12, padding: 14 },
   dimText: { color: '#555', fontSize: 13 },
   diagRow: {
