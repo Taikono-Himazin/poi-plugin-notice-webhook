@@ -5,11 +5,7 @@
  * - Copies widget Swift sources into the ios/ build directory
  * - Adds a WidgetKit extension target to the Xcode project
  */
-const {
-  withEntitlementsPlist,
-  withXcodeProject,
-  withDangerousMod,
-} = require('@expo/config-plugins');
+const { withEntitlementsPlist, withXcodeProject, withDangerousMod } = require('@expo/config-plugins');
 const path = require('path');
 const fs = require('fs');
 
@@ -49,10 +45,7 @@ function withWidget(config) {
 \t</array>
 </dict>
 </plist>`;
-      fs.writeFileSync(
-        path.join(widgetDir, `${WIDGET_NAME}.entitlements`),
-        entitlementsPlist,
-      );
+      fs.writeFileSync(path.join(widgetDir, `${WIDGET_NAME}.entitlements`), entitlementsPlist);
 
       // Widget Info.plist
       const infoPlist = `<?xml version="1.0" encoding="UTF-8"?>
@@ -97,12 +90,7 @@ function withWidget(config) {
     const widgetBundleId = `${mainBundleId}.widget`;
 
     // Add the extension target
-    const target = proj.addTarget(
-      WIDGET_NAME,
-      'app_extension',
-      WIDGET_NAME,
-      widgetBundleId,
-    );
+    const target = proj.addTarget(WIDGET_NAME, 'app_extension', WIDGET_NAME, widgetBundleId);
 
     // Create a PBXGroup for widget files
     const groupKey = proj.pbxCreateGroup(WIDGET_NAME, WIDGET_NAME);

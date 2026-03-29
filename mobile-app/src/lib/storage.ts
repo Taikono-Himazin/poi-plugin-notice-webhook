@@ -39,6 +39,7 @@ export type Timer = {
   slot: number;
   completesAt: string;
   message: string;
+  widgetMessage?: string;
   notifyBeforeMinutes?: number;
   durationSeconds?: number;
 };

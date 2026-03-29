@@ -10,8 +10,8 @@ nav_order: 1
 
 A Webhook notification plugin for [poi](https://github.com/poooi/poi). Sends Discord / Slack notifications for game events such as expedition completion, repair completion, and construction completion.
 
-| poi Plugin | Mobile App | Discord Notification |
-|:---:|:---:|:---:|
+|               poi Plugin               |                Mobile App                 |       Discord Notification        |
+| :------------------------------------: | :---------------------------------------: | :-------------------------------: |
 | ![poi Plugin](../images/poi_image.png) | ![Mobile App](../images/iphone_image.png) | ![Discord](../images/discord.png) |
 
 ## Features
@@ -55,22 +55,22 @@ Push notifications directly to your smartphone — works with Cloud mode. No Web
 
 ## Notification Events
 
-| Event | Timing |
-|---|---|
-| Expedition complete | At completion (or just before) |
-| Repair complete | At completion (or just before) |
+| Event                 | Timing                         |
+| --------------------- | ------------------------------ |
+| Expedition complete   | At completion (or just before) |
+| Repair complete       | At completion (or just before) |
 | Construction complete | At completion (or just before) |
 
 ## Source Code
 
 ## Table of Contents
 
-| Page | Description |
-|---|---|
-| [Usage](usage) | Plugin settings and operation guide |
-| [API Reference](api) | REST API endpoint reference |
-| [Privacy Policy](privacy) | How we handle your data |
-| [Terms of Service](terms) | Service terms and conditions |
+| Page                      | Description                         |
+| ------------------------- | ----------------------------------- |
+| [Usage](usage)            | Plugin settings and operation guide |
+| [API Reference](api)      | REST API endpoint reference         |
+| [Privacy Policy](privacy) | How we handle your data             |
+| [Terms of Service](terms) | Service terms and conditions        |
 
 ## Source Code
 

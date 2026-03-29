@@ -24,9 +24,9 @@ Receives a game event notification and delivers it via Webhook from the cloud. N
 
 **Path Parameters**
 
-| Parameter | Description |
-|---|---|
-| `token` | Notification token (issued in settings) |
+| Parameter | Description                             |
+| --------- | --------------------------------------- |
+| `token`   | Notification token (issued in settings) |
 
 **Request Body**
 
@@ -38,20 +38,20 @@ Receives a game event notification and delivers it via Webhook from the cloud. N
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `message` | string | Notification message body |
-| `title` | string | Notification title |
-| `type` | string | `expedition` / `repair` / `construction` / `default` |
+| Field     | Type   | Description                                          |
+| --------- | ------ | ---------------------------------------------------- |
+| `message` | string | Notification message body                            |
+| `title`   | string | Notification title                                   |
+| `type`    | string | `expedition` / `repair` / `construction` / `default` |
 
 **Response**: `{ "ok": true }`
 
 **Errors**
 
-| Code | Reason |
-|---|---|
-| 400 | Missing token or Webhook not configured |
-| 404 | Token not found |
+| Code | Reason                                  |
+| ---- | --------------------------------------- |
+| 400  | Missing token or Webhook not configured |
+| 404  | Token not found                         |
 
 ---
 
@@ -83,16 +83,16 @@ Syncs game timer state to the cloud and schedules notifications at completion ti
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `timers` | array | Array of timers |
-| `timers[].type` | string | `expedition` / `repair` / `construction` |
-| `timers[].slot` | string | Slot number |
-| `timers[].completesAt` | string | Completion time (ISO 8601) |
-| `timers[].message` | string | Notification message (defaults to type title if omitted) |
-| `enabled` | object | Enable/disable per type (default: all `true`) |
-| `notifyBeforeMinutes` | number | Minutes before completion to notify (0–60, default: 1) |
-| `mobileOnly` | boolean | If `true`, skip Webhook delivery (mobile app only). Default: `false` |
+| Field                  | Type    | Description                                                          |
+| ---------------------- | ------- | -------------------------------------------------------------------- |
+| `timers`               | array   | Array of timers                                                      |
+| `timers[].type`        | string  | `expedition` / `repair` / `construction`                             |
+| `timers[].slot`        | string  | Slot number                                                          |
+| `timers[].completesAt` | string  | Completion time (ISO 8601)                                           |
+| `timers[].message`     | string  | Notification message (defaults to type title if omitted)             |
+| `enabled`              | object  | Enable/disable per type (default: all `true`)                        |
+| `notifyBeforeMinutes`  | number  | Minutes before completion to notify (0–60, default: 1)               |
+| `mobileOnly`           | boolean | If `true`, skip Webhook delivery (mobile app only). Default: `false` |
 
 An empty `timers` array cancels all existing schedules (used on logout).
 
@@ -131,6 +131,7 @@ Permanently deletes the account and all associated data. Removes user data from 
 **Response**: `{ "ok": true }`
 
 **Deleted data:**
+
 - Account settings (Webhook config)
 - Notification tokens
 - Timer state and delivery schedules
@@ -153,10 +154,10 @@ Updates Webhook configuration. **Auth**: Cognito JWT required
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
+| Field         | Type   | Description                                                  |
+| ------------- | ------ | ------------------------------------------------------------ |
 | `webhookType` | string | `discord` / `slack` / `none` (`none` removes Webhook config) |
-| `webhookUrl` | string | Webhook URL (required unless `webhookType` is `none`) |
+| `webhookUrl`  | string | Webhook URL (required unless `webhookType` is `none`)        |
 
 ---
 
@@ -176,18 +177,18 @@ Registers the mobile app's Expo Push Token on the server. Used for silent push n
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
+| Field       | Type   | Description                                         |
+| ----------- | ------ | --------------------------------------------------- |
 | `pushToken` | string | Expo Push Token (obtained via `expo-notifications`) |
 
 **Response**: `{ "ok": true }`
 
 **Errors**
 
-| Code | Reason |
-|---|---|
-| 400 | `pushToken` missing or not a string |
-| 401 | Not authenticated |
+| Code | Reason                              |
+| ---- | ----------------------------------- |
+| 400  | `pushToken` missing or not a string |
+| 401  | Not authenticated                   |
 
 ### DELETE /push-tokens
 
@@ -233,22 +234,22 @@ Submits error logs from clients (mobile app or poi plugin). No authentication re
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `source` | string | `mobile-app` / `poi-plugin` (required) |
-| `level` | string | `error` / `warn` (default: `error`) |
+| Field     | Type   | Description                              |
+| --------- | ------ | ---------------------------------------- |
+| `source`  | string | `mobile-app` / `poi-plugin` (required)   |
+| `level`   | string | `error` / `warn` (default: `error`)      |
 | `message` | string | Error message (required, max 1000 chars) |
-| `stack` | string | Stack trace (optional, max 5000 chars) |
-| `context` | object | Additional context (optional) |
+| `stack`   | string | Stack trace (optional, max 5000 chars)   |
+| `context` | object | Additional context (optional)            |
 
 **Response**: `{ "ok": true }`
 
 **Errors**
 
-| Code | Reason |
-|---|---|
-| 400 | Invalid JSON, or invalid `source` / `level` / `message` |
-| 413 | Request body exceeds 10KB |
+| Code | Reason                                                  |
+| ---- | ------------------------------------------------------- |
+| 400  | Invalid JSON, or invalid `source` / `level` / `message` |
+| 413  | Request body exceeds 10KB                               |
 
 ### GET /errors
 
@@ -256,12 +257,12 @@ Returns error logs. **Auth**: Cognito JWT required
 
 **Query Parameters**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `source` | string | `mobile-app` / `poi-plugin` (default: `mobile-app`) |
-| `limit` | number | Number of items (max 200, default: 50) |
-| `since` | string | Return logs after this timestamp (ISO 8601) |
-| `cursor` | string | Pagination cursor |
+| Parameter | Type   | Description                                         |
+| --------- | ------ | --------------------------------------------------- |
+| `source`  | string | `mobile-app` / `poi-plugin` (default: `mobile-app`) |
+| `limit`   | number | Number of items (max 200, default: 50)              |
+| `since`   | string | Return logs after this timestamp (ISO 8601)         |
+| `cursor`  | string | Pagination cursor                                   |
 
 **Response**
 
@@ -285,4 +286,3 @@ Returns error logs. **Auth**: Cognito JWT required
 ### GET /dashboard
 
 Returns an HTML dashboard for viewing error logs. No authentication required (Cognito OAuth login is handled within the dashboard).
-

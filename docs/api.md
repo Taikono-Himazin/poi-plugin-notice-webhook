@@ -24,9 +24,9 @@ nav_order: 3
 
 **パスパラメータ**
 
-| パラメータ | 説明 |
-|---|---|
-| `token` | 通知トークン（設定画面で発行） |
+| パラメータ | 説明                           |
+| ---------- | ------------------------------ |
+| `token`    | 通知トークン（設定画面で発行） |
 
 **リクエストボディ**
 
@@ -38,11 +38,11 @@ nav_order: 3
 }
 ```
 
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `message` | string | 通知メッセージ本文 |
-| `title` | string | 通知タイトル |
-| `type` | string | `expedition` / `repair` / `construction` / `default` |
+| フィールド | 型     | 説明                                                 |
+| ---------- | ------ | ---------------------------------------------------- |
+| `message`  | string | 通知メッセージ本文                                   |
+| `title`    | string | 通知タイトル                                         |
+| `type`     | string | `expedition` / `repair` / `construction` / `default` |
 
 **レスポンス**
 
@@ -52,10 +52,10 @@ nav_order: 3
 
 **エラー**
 
-| コード | 原因 |
-|---|---|
-| 400 | トークン未指定、Webhook 未設定 |
-| 404 | トークンが存在しない |
+| コード | 原因                           |
+| ------ | ------------------------------ |
+| 400    | トークン未指定、Webhook 未設定 |
+| 404    | トークンが存在しない           |
 
 ---
 
@@ -89,16 +89,16 @@ nav_order: 3
 }
 ```
 
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `timers` | array | タイマー配列 |
-| `timers[].type` | string | `expedition` / `repair` / `construction` |
-| `timers[].slot` | string | スロット番号 |
-| `timers[].completesAt` | string | 完了時刻（ISO 8601） |
-| `timers[].message` | string | 通知メッセージ（省略時はデフォルトタイトル） |
-| `enabled` | object | タイプごとの有効/無効（デフォルト: すべて `true`） |
-| `notifyBeforeMinutes` | number | 完了何分前に通知するか（0〜60、デフォルト: 1） |
-| `mobileOnly` | boolean | `true` の場合 Webhook 配信なし（モバイルアプリのみ）。デフォルト: `false` |
+| フィールド             | 型      | 説明                                                                      |
+| ---------------------- | ------- | ------------------------------------------------------------------------- |
+| `timers`               | array   | タイマー配列                                                              |
+| `timers[].type`        | string  | `expedition` / `repair` / `construction`                                  |
+| `timers[].slot`        | string  | スロット番号                                                              |
+| `timers[].completesAt` | string  | 完了時刻（ISO 8601）                                                      |
+| `timers[].message`     | string  | 通知メッセージ（省略時はデフォルトタイトル）                              |
+| `enabled`              | object  | タイプごとの有効/無効（デフォルト: すべて `true`）                        |
+| `notifyBeforeMinutes`  | number  | 完了何分前に通知するか（0〜60、デフォルト: 1）                            |
+| `mobileOnly`           | boolean | `true` の場合 Webhook 配信なし（モバイルアプリのみ）。デフォルト: `false` |
 
 `timers` が空配列の場合、既存のスケジュールをすべてキャンセルします（ログアウト時に使用）。
 
@@ -141,6 +141,7 @@ nav_order: 3
 ```
 
 **削除されるデータ:**
+
 - アカウント設定（Webhook 設定）
 - 通知トークン
 - タイマー状態と配信スケジュール
@@ -174,10 +175,10 @@ Webhook 設定を更新します。**認証**: Cognito JWT 必須
 }
 ```
 
-| フィールド | 型 | 説明 |
-|---|---|---|
+| フィールド    | 型     | 説明                                                         |
+| ------------- | ------ | ------------------------------------------------------------ |
 | `webhookType` | string | `discord` / `slack` / `none`（`none` で Webhook 設定を削除） |
-| `webhookUrl` | string | Webhook URL（`webhookType` が `none` 以外の場合は必須） |
+| `webhookUrl`  | string | Webhook URL（`webhookType` が `none` 以外の場合は必須）      |
 
 ---
 
@@ -197,8 +198,8 @@ Webhook 設定を更新します。**認証**: Cognito JWT 必須
 }
 ```
 
-| フィールド | 型 | 説明 |
-|---|---|---|
+| フィールド  | 型     | 説明                                           |
+| ----------- | ------ | ---------------------------------------------- |
 | `pushToken` | string | Expo Push Token（`expo-notifications` で取得） |
 
 **レスポンス**
@@ -209,10 +210,10 @@ Webhook 設定を更新します。**認証**: Cognito JWT 必須
 
 **エラー**
 
-| コード | 原因 |
-|---|---|
-| 400 | `pushToken` が未指定または文字列でない |
-| 401 | 認証なし |
+| コード | 原因                                   |
+| ------ | -------------------------------------- |
+| 400    | `pushToken` が未指定または文字列でない |
+| 401    | 認証なし                               |
 
 ### DELETE /push-tokens
 
@@ -270,22 +271,22 @@ Webhook 設定を更新します。**認証**: Cognito JWT 必須
 }
 ```
 
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `source` | string | `mobile-app` / `poi-plugin`（必須） |
-| `level` | string | `error` / `warn`（デフォルト: `error`） |
-| `message` | string | エラーメッセージ（必須、最大 1000 文字） |
-| `stack` | string | スタックトレース（任意、最大 5000 文字） |
-| `context` | object | 追加コンテキスト情報（任意） |
+| フィールド | 型     | 説明                                     |
+| ---------- | ------ | ---------------------------------------- |
+| `source`   | string | `mobile-app` / `poi-plugin`（必須）      |
+| `level`    | string | `error` / `warn`（デフォルト: `error`）  |
+| `message`  | string | エラーメッセージ（必須、最大 1000 文字） |
+| `stack`    | string | スタックトレース（任意、最大 5000 文字） |
+| `context`  | object | 追加コンテキスト情報（任意）             |
 
 **レスポンス**: `{ "ok": true }`
 
 **エラー**
 
-| コード | 原因 |
-|---|---|
-| 400 | 不正な JSON、`source` / `level` / `message` が無効 |
-| 413 | リクエストボディが 10KB を超過 |
+| コード | 原因                                               |
+| ------ | -------------------------------------------------- |
+| 400    | 不正な JSON、`source` / `level` / `message` が無効 |
+| 413    | リクエストボディが 10KB を超過                     |
 
 ### GET /errors
 
@@ -293,12 +294,12 @@ Webhook 設定を更新します。**認証**: Cognito JWT 必須
 
 **クエリパラメータ**
 
-| パラメータ | 型 | 説明 |
-|---|---|---|
-| `source` | string | `mobile-app` / `poi-plugin`（デフォルト: `mobile-app`） |
-| `limit` | number | 取得件数（最大 200、デフォルト: 50） |
-| `since` | string | この日時以降のログを取得（ISO 8601） |
-| `cursor` | string | ページネーション用カーソル |
+| パラメータ | 型     | 説明                                                    |
+| ---------- | ------ | ------------------------------------------------------- |
+| `source`   | string | `mobile-app` / `poi-plugin`（デフォルト: `mobile-app`） |
+| `limit`    | number | 取得件数（最大 200、デフォルト: 50）                    |
+| `since`    | string | この日時以降のログを取得（ISO 8601）                    |
+| `cursor`   | string | ページネーション用カーソル                              |
 
 **レスポンス**
 
@@ -322,4 +323,3 @@ Webhook 設定を更新します。**認証**: Cognito JWT 必須
 ### GET /dashboard
 
 エラーログ閲覧用の HTML ダッシュボードを返します。認証不要（ダッシュボード内で Cognito OAuth ログインを実行）。
-

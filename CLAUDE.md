@@ -35,12 +35,14 @@ npm run format:check  # Prettier チェックのみ
 ## Conventions
 
 ### 言語・モジュール形式
+
 - aws/lib/: TypeScript (CDK stack)
 - aws/src/: CommonJS JavaScript (Lambda handlers), `'use strict';` 必須
 - mobile-app/: TypeScript/TSX, ESM
 - src/: ES6 JavaScript (.es extension)
 
 ### コードスタイル (Prettier + ESLint で自動適用)
+
 - セミコロン: あり
 - クォート: シングルクォート
 - インデント: スペース 2
@@ -51,6 +53,7 @@ npm run format:check  # Prettier チェックのみ
 - VSCode 保存時に自動整形 (`.vscode/settings.json` で設定済み)
 
 ### API 設計
+
 - async/await を使用、コールバックは使わない
 - エラーレスポンスは JSON `{ error: "message" }` + HTTP status code
 - 認証: Cognito JWT + Bearer token
@@ -68,6 +71,7 @@ npm run format:check  # Prettier チェックのみ
 ## DynamoDB Tables
 
 accounts, tokens, notifications, timers, errors, stats, push-tokens
+
 - PK設計は `aws/lib/poi-webhook-stack.ts` を参照
 
 ## Branching & Release
@@ -81,3 +85,23 @@ accounts, tokens, notifications, timers, errors, stats, push-tokens
 - 3ステップ以上の非自明なタスクはPlan Modeから開始すること
 - 調査・検索タスクはサブエージェントに委譲し、メインコンテキストを保持すること
 - Claudeが間違えたパターンがあれば、このファイルに追記して再発を防ぐこと
+
+<important if="making any code changes">
+## Verification
+
+- コード変更後は必ず関連テストを実行して検証すること
+- テストコマンド: aws → `cd aws && npm test`, mobile-app → `cd mobile-app && npm test`, src → `cd src && npx jest --verbose`
+- テストが通らない変更はコミットしない
+  </important>
+
+<important if="context usage is growing">
+## Context Management
+
+- コンテキスト使用量が50%に達したら `/compact` を実行すること
+- タスクが完了して別のタスクに移る場合は `/clear` でリセットすること
+- サブタスクはコンテキスト50%以内で完了できる粒度に分割すること
+  </important>
+
+## Gotchas (過去の失敗パターン)
+
+<!-- Claudeが間違えたパターンをここに追記していく -->

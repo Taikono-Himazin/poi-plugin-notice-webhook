@@ -3,6 +3,7 @@
 ## [1.2.0] - 2026-03-29
 
 ### Added
+
 - EAS Update (OTA) に対応
   - 起動時にアップデートを自動チェックし、確認ダイアログで適用可能
   - デバッグ画面に手動アップデート確認ボタンを追加
@@ -22,6 +23,7 @@
 - aws/ ディレクトリに README とサードパーティライセンスを追加
 
 ### Fixed
+
 - サイレントプッシュのペイロード構造を修正 (data.data.type → data.notification.request.content.data.type)
   - デバッグビューに Push が表示されない不具合を修正
 - ログイン失敗時にエラー種別 (dismissed, error 等) やトークン交換エラーの詳細を表示するよう改善
@@ -33,10 +35,12 @@
 - esbuild を 0.25.12 に更新
 
 ### Changed
+
 - HomeScreen のタイマー一覧を完了済みも含め全件表示するよう変更
 - VSCode 推奨拡張に Git Graph・日本語パック・Live Server・Markdown PDF・Claude Code を追加
 
 ### Docs
+
 - モバイルアプリページを新規作成 (ウィジェット機能・ロック画面ウィジェット解説)
 - usage.md のウィジェットセクションをロック画面対応に更新
 - Mermaid 図を draw.io SVG に置き換え、設計ドキュメントを整理
@@ -45,6 +49,7 @@
 ## [1.1.0] - 2026-03-28
 
 ### Added
+
 - アカウント削除機能を追加 (DELETE /account)
   - Lambda: Cognito ユーザー削除 + DynamoDB 全テーブルのユーザーデータ一括削除
   - CDK: AccountDeleteFunction + API Gateway エンドポイント
@@ -57,13 +62,16 @@
 - EAS ビルド/提出・npm publish スクリプトを追加
 
 ### Fixed
+
 - Android adaptive icon に余白を追加し拡大表示を修正
 - スケジュール名のハッシュを MD5 から SHA-256 に変更
 
 ### Changed
+
 - Prettier/ESLint による自動整形を設定し全ファイルに適用
 
 ### Docs
+
 - モバイルアプリのドキュメントを追加
 - サイレントプッシュ同期の設計書・API リファレンス・セットアップガイドを更新
 - API ドキュメントの修正・補完

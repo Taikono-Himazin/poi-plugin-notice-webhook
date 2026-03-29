@@ -73,7 +73,10 @@ async function performOAuthLogin(config: AuthConfig, extraParams: Record<string,
 
   if (result.type === 'cancel') throw new Error('ログインがキャンセルされました');
   if (result.type !== 'success') {
-    const detail = result.type === 'error' && 'error' in result ? ` (${(result as any).error?.message ?? result.type})` : ` (${result.type})`;
+    const detail =
+      result.type === 'error' && 'error' in result
+        ? ` (${(result as any).error?.message ?? result.type})`
+        : ` (${result.type})`;
     throw new Error(`ログインに失敗しました${detail}`);
   }
 

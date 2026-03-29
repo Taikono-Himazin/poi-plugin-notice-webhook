@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = 'sync_log';
-const MAX_ENTRIES = 50;
+const MAX_ENTRIES = 30;
 
 export type SyncLogEntry = {
   time: string; // ISO8601

@@ -6,7 +6,7 @@ module.exports = {
     slug: 'poi-notice',
     version,
     updates: {
-      url: "https://u.expo.dev/f7f74146-d99d-482f-a190-d3c78926c6eb"
+      url: 'https://u.expo.dev/f7f74146-d99d-482f-a190-d3c78926c6eb',
     },
     runtimeVersion: { policy: 'appVersion' },
     scheme: 'poi-notice',
@@ -65,9 +65,7 @@ module.exports = {
                   targetName: 'PoiNoticeWidgetExtension',
                   bundleIdentifier: 'com.github.taikonohimazin.poinotice.widget',
                   entitlements: {
-                    'com.apple.security.application-groups': [
-                      'group.com.github.taikonohimazin.poinotice',
-                    ],
+                    'com.apple.security.application-groups': ['group.com.github.taikonohimazin.poinotice'],
                   },
                 },
               ],

@@ -1,28 +1,49 @@
-// For format details, see https://aka.ms/devcontainer.json. For config options, see the
-// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+// 艦これ通知 Webhook — Dev Container 設定
+// https://aka.ms/devcontainer.json
 {
-  "name": "Ubuntu",
-  // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+  "name": "poi-notice-webhook",
+  // Ubuntu 24.04 LTS (Noble) ベースイメージ
   "image": "mcr.microsoft.com/devcontainers/base:noble",
+  // 開発に必要なツール群
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
+    // aws/, mobile-app/ 共通ランタイム (Lambda に合わせて v24 固定)
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "24"
+    },
+    // CDK deploy / Lambda 操作用
     "ghcr.io/devcontainers/features/aws-cli": {},
-    "ghcr.io/devcontainers-extra/features/aws-cdk": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker": {}
+    // cdk diff / cdk deploy
+    "ghcr.io/devcontainers-extra/features/aws-cdk": {}
+    // code-serverをコンテナ内にインストールするFeature
+    // "ghcr.io/coder/devcontainer-features/code-server:2": {
+    //   "installPath": "/usr/local/bin/code-server"
+    // }
+  },
+  // コンテナ作成後に各ディレクトリの依存関係を一括インストール
+  "postCreateCommand": "npm ci && cd aws && npm ci && cd ../mobile-app && npm ci --legacy-peer-deps",
+  "customizations": {
+    "vscode": {
+      // .vscode/extensions.json と同期
+      "extensions": [
+        "esbenp.prettier-vscode", // コードフォーマッター
+        "dbaeumer.vscode-eslint", // リンター
+        "mhutchie.git-graph", // Git 履歴可視化
+        "ms-ceintl.vscode-language-pack-ja", // 日本語 UI
+        "ritwickdey.liveserver", // widget-preview.html 確認用
+        "yzane.markdown-pdf", // ドキュメント PDF 出力
+        "bierner.markdown-mermaid", // Mermaid 図プレビュー
+        "anthropic.claude-code" // Claude Code
+      ],
+      "settings": {
+        // Prettier + ESLint の自動整形 (CLAUDE.md 参照)
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+      }
+    }
+    // "coder": {
+    //   "agent": {
+    //     "type": "devcontainer"
+    //   }
+    // }
   }
-
-  // Features to add to the dev container. More info: https://containers.dev/features.
-  // "features": {},
-
-  // Use 'forwardPorts' to make a list of ports inside the container available locally.
-  // "forwardPorts": [],
-
-  // Use 'postCreateCommand' to run commands after the container is created.
-  // "postCreateCommand": "uname -a",
-
-  // Configure tool-specific properties.
-  // "customizations": {},
-
-  // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-  // "remoteUser": "root"
 }

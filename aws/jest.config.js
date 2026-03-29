@@ -3,4 +3,4 @@ module.exports = {
   testMatch: ['**/__tests__/**/*.test.js'],
   resetMocks: true,
   coverageReporters: ['text', 'json-summary', 'lcov'],
-}
+};

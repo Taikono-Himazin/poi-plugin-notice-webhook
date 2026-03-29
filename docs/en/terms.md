@@ -69,7 +69,7 @@ These Terms may be updated without prior notice. Material changes will be announ
 
 ---
 
-*Last updated: March 2026*
+_Last updated: March 2026_
 
 ---
 

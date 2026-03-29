@@ -24,7 +24,10 @@ async function performSync(source: 'foreground' | 'background' | 'push'): Promis
   }
 
   const config = await Storage.getAuthConfig();
-  if (!jwt || !config) return;
+  if (!jwt || !config) {
+    await appendSyncLog({ source, success: false, error: !jwt ? 'JWT取得失敗' : '設定なし' });
+    return;
+  }
 
   const timers = await fetchTimers(config.apiUrl, jwt);
   const settings = await Storage.getNotifySettings();

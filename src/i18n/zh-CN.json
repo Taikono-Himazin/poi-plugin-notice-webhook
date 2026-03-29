@@ -45,7 +45,7 @@
   "forceSync": "强制同步",
   "forceSyncing": "同步中...",
   "forceSyncDone": "已同步",
-  "supportNote":"云端服务器的运营需要费用。如果您愿意，欢迎支持本项目。",
+  "supportNote": "云端服务器的运营需要费用。如果您愿意，欢迎支持本项目。",
   "notifyBeforeLabel": "完成前",
   "notifyBeforeUnit": "分钟通知",
   "supportLink": "支持（GitHub Sponsors）"

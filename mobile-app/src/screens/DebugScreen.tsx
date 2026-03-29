@@ -6,6 +6,8 @@ import * as TaskManager from 'expo-task-manager';
 import { isModuleAvailable, getWidgetDiagnostics } from '../../modules/widget-data';
 import { getSyncLog, clearSyncLog, SyncLogEntry } from '../lib/syncLog';
 import { BACKGROUND_SYNC_TASK, BACKGROUND_NOTIFICATION_TASK } from '../lib/backgroundSync';
+import { registerPushToken } from '../lib/pushToken';
+import { Storage } from '../lib/storage';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '-';
 
@@ -45,6 +47,8 @@ export default function DebugScreen({ onBack }: Props) {
   const [bgSyncRegistered, setBgSyncRegistered] = useState<boolean | null>(null);
   const [bgNotifRegistered, setBgNotifRegistered] = useState<boolean | null>(null);
   const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const [pushTokenStatus, setPushTokenStatus] = useState<string | null>(null);
+  const [currentPushToken, setCurrentPushToken] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [diag, log, bgSync, bgNotif] = await Promise.all([
@@ -53,6 +57,8 @@ export default function DebugScreen({ onBack }: Props) {
       TaskManager.isTaskRegisteredAsync(BACKGROUND_SYNC_TASK).catch(() => null),
       TaskManager.isTaskRegisteredAsync(BACKGROUND_NOTIFICATION_TASK).catch(() => null),
     ]);
+    const pushToken = await Storage.getPushToken();
+    setCurrentPushToken(pushToken);
     setWidgetModuleAvailable(isModuleAvailable());
     setWidgetDiag(diag);
     setSyncLog(log);
@@ -97,6 +103,25 @@ export default function DebugScreen({ onBack }: Props) {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setUpdateStatus(`エラー: ${msg}`);
+    }
+  }, []);
+
+  const handleReregisterPushToken = useCallback(async () => {
+    setPushTokenStatus('取得中...');
+    try {
+      const config = await Storage.getAuthConfig();
+      const jwt = await Storage.getJwt();
+      if (!config || !jwt) {
+        setPushTokenStatus('未ログイン');
+        return;
+      }
+      await registerPushToken(config.apiUrl, jwt);
+      const token = await Storage.getPushToken();
+      setCurrentPushToken(token);
+      setPushTokenStatus('登録完了');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setPushTokenStatus(`エラー: ${msg}`);
     }
   }, []);
 
@@ -190,10 +215,24 @@ export default function DebugScreen({ onBack }: Props) {
         </View>
       </View>
 
+      {/* Push トークン */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Push トークン</Text>
+          <TouchableOpacity onPress={handleReregisterPushToken}>
+            <Text style={styles.updateCheckText}>再取得</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.card}>
+          <DiagRow label="トークン" value={currentPushToken ?? '未登録'} />
+          {pushTokenStatus && <DiagRow label="状態" value={pushTokenStatus} />}
+        </View>
+      </View>
+
       {/* 同期ログ */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>同期ログ</Text>
+          <Text style={styles.sectionTitle}>同期ログ (最新30件)</Text>
           {syncLog.length > 0 && (
             <TouchableOpacity onPress={handleClearLog}>
               <Text style={styles.clearText}>クリア</Text>
