@@ -3,12 +3,14 @@ import { View, Text, ScrollView, TouchableOpacity, Switch, StyleSheet, RefreshCo
 import Constants from 'expo-constants';
 import { Storage, Timer, NotifySettings } from '../lib/storage';
 import AboutScreen from './AboutScreen';
+import DebugScreen from './DebugScreen';
 import { fetchTimers, deleteAccount } from '../lib/api';
 import { refreshTokens } from '../lib/auth';
 import { scheduleTimerNotifications, getScheduledCount } from '../lib/notifications';
 import * as Notifications from 'expo-notifications';
 import { reportError } from '../lib/reportError';
 import { syncWidgetData } from '../lib/widgetSync';
+import { appendSyncLog } from '../lib/syncLog';
 
 type Props = {
   onLogout: () => void;
@@ -44,6 +46,7 @@ export default function HomeScreen({ onLogout }: Props) {
   const [scheduledCount, setScheduledCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
   const [, setTick] = useState(0);
 
   // 残り時間表示を毎秒更新
@@ -90,12 +93,14 @@ export default function HomeScreen({ onLogout }: Props) {
       const [fetched, s] = await Promise.all([fetchTimers(config.apiUrl, jwt), Storage.getNotifySettings()]);
 
       const now = Date.now();
-      await Promise.all([
+      const [, , , widgetSynced] = await Promise.all([
         Storage.setTimersCache(fetched),
         Storage.setLastSync(now),
         scheduleTimerNotifications(fetched, s),
         syncWidgetData(fetched, now),
       ]);
+
+      await appendSyncLog({ source: 'foreground', success: true, timerCount: fetched.length, widgetSynced });
 
       const sc = await getScheduledCount();
       setTimers(fetched);
@@ -103,6 +108,11 @@ export default function HomeScreen({ onLogout }: Props) {
       setScheduledCount(sc);
     } catch (e: unknown) {
       reportError(e, { action: 'sync' });
+      await appendSyncLog({
+        source: 'foreground',
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      });
       if (!silent) {
         const msg = e instanceof Error ? e.message : String(e);
         Alert.alert('同期失敗', msg);
@@ -184,6 +194,10 @@ export default function HomeScreen({ onLogout }: Props) {
     return <AboutScreen onBack={() => setShowAbout(false)} />;
   }
 
+  if (showDebug) {
+    return <DebugScreen onBack={() => setShowDebug(false)} />;
+  }
+
   return (
     <ScrollView
       style={styles.container}
@@ -257,6 +271,10 @@ export default function HomeScreen({ onLogout }: Props) {
 
       <TouchableOpacity style={styles.aboutButton} onPress={() => setShowAbout(true)}>
         <Text style={styles.aboutButtonText}>このアプリについて</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.aboutButton} onPress={() => setShowDebug(true)}>
+        <Text style={styles.aboutButtonText}>デバッグ</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.deleteAccountButton} onPress={handleDeleteAccount}>

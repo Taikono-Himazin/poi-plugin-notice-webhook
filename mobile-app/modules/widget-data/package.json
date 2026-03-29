@@ -1,0 +1,8 @@
+{
+  "name": "widget-data",
+  "version": "1.0.0",
+  "description": "Expo module for sharing data with iOS WidgetKit extension via App Groups",
+  "main": "index.ts",
+  "author": "taikonohimazin",
+  "license": "MIT"
+}
