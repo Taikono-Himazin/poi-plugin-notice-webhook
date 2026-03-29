@@ -13,11 +13,11 @@
     // CDK deploy / Lambda 操作用
     "ghcr.io/devcontainers/features/aws-cli": {},
     // cdk diff / cdk deploy
-    "ghcr.io/devcontainers-extra/features/aws-cdk": {},
+    "ghcr.io/devcontainers-extra/features/aws-cdk": {}
     // code-serverをコンテナ内にインストールするFeature
-    "ghcr.io/coder/devcontainer-features/code-server:2": {
-      "installPath": "/usr/local/bin/code-server"
-    }
+    // "ghcr.io/coder/devcontainer-features/code-server:2": {
+    //   "installPath": "/usr/local/bin/code-server"
+    // }
   },
   // コンテナ作成後に各ディレクトリの依存関係を一括インストール
   "postCreateCommand": "npm ci && cd aws && npm ci && cd ../mobile-app && npm ci --legacy-peer-deps",
@@ -39,11 +39,11 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode",
         "editor.formatOnSave": true
       }
-    },
-    "coder": {
-      "agent": {
-        "type": "devcontainer"
-      }
     }
+    // "coder": {
+    //   "agent": {
+    //     "type": "devcontainer"
+    //   }
+    // }
   }
 }
