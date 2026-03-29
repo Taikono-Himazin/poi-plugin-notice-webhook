@@ -2,6 +2,11 @@
   "recommendations": [
     "esbenp.prettier-vscode",
     "dbaeumer.vscode-eslint",
-    "editorconfig.editorconfig"
+    "mhutchie.git-graph",
+    "ms-ceintl.vscode-language-pack-ja",
+    "ritwickdey.liveserver",
+    "yzane.markdown-pdf",
+    "bierner.markdown-mermaid",
+    "anthropic.claude-code"
   ]
 }
