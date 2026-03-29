@@ -1,6 +1,6 @@
 {
   "name": "poi-notice-webhook",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "[![GitHub Sponsors](https://img.shields.io/github/sponsors/Taikono-Himazin?label=Sponsor&logo=GitHub&style=for-the-badge)](https://github.com/sponsors/Taikono-Himazin)",
   "main": "index.js",
   "directories": {
