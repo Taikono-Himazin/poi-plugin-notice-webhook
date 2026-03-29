@@ -5,6 +5,10 @@ module.exports = {
     name: 'poi通知転送',
     slug: 'poi-notice',
     version,
+    updates: {
+      url: "https://u.expo.dev/f7f74146-d99d-482f-a190-d3c78926c6eb"
+    },
+    runtimeVersion: { policy: 'appVersion' },
     scheme: 'poi-notice',
     orientation: 'portrait',
     icon: './assets/icon.png',

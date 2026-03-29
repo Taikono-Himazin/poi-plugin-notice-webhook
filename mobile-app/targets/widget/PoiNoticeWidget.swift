@@ -8,6 +8,7 @@ struct TimerData: Codable {
     let message: String
     let completesAt: String
     let slot: Int?
+    let durationSeconds: Double?
 }
 
 struct WidgetTimerData: Codable {
@@ -20,6 +21,7 @@ struct ActiveTimer {
     let message: String
     let completesAt: Date
     let slot: Int?
+    let durationSeconds: Double?
 
     var typeLabel: String {
         switch type {
@@ -37,6 +39,32 @@ struct ActiveTimer {
         case "construction": return Color(red: 0.996, green: 0.906, blue: 0.361)
         default:             return .gray
         }
+    }
+
+    var typeIcon: String {
+        switch type {
+        case "expedition":   return "paperplane.fill"
+        case "repair":       return "wrench.fill"
+        case "construction": return "hammer.fill"
+        default:             return "timer"
+        }
+    }
+
+    func progress(at now: Date) -> Double {
+        guard let duration = durationSeconds, duration > 0 else { return 0 }
+        let remaining = completesAt.timeIntervalSince(now)
+        return max(0, min(1, 1.0 - remaining / duration))
+    }
+
+    func remainingMinutes(at now: Date) -> Int {
+        max(0, Int(ceil(completesAt.timeIntervalSince(now) / 60)))
+    }
+
+    func remainingFormatted(at now: Date) -> String {
+        let total = max(0, Int(ceil(completesAt.timeIntervalSince(now))))
+        let h = total / 3600
+        let m = (total % 3600) / 60
+        return String(format: "%02d:%02d", h, m)
     }
 }
 
@@ -74,19 +102,16 @@ struct PoiTimelineProvider: TimelineProvider {
         let (allTimers, lastSyncDate, diag) = loadTimers()
         let now = Date()
 
-        // タイマー完了時刻ごとにエントリを生成し、完了したタイマーを順次除外する
+        // タイマー完了時刻ごとにエントリを生成（完了後も00:00で表示し続ける）
         var entries: [PoiEntry] = []
-        var remaining = allTimers
 
         // 現在の状態
-        entries.append(PoiEntry(date: now, timers: remaining, lastSync: lastSyncDate, diag: diag))
+        entries.append(PoiEntry(date: now, timers: allTimers, lastSync: lastSyncDate, diag: diag))
 
-        // 各タイマー完了時点のエントリ（完了したものを除外した状態）
-        let expirations = remaining.map(\.completesAt).sorted()
+        // 各タイマー完了時点のエントリ（表示更新用、タイマーは除外しない）
+        let expirations = allTimers.map(\.completesAt).sorted()
         for expireDate in expirations {
-            remaining = remaining.filter { $0.completesAt > expireDate }
-            let d: WidgetDiagState = remaining.isEmpty ? .allExpired : .ok
-            entries.append(PoiEntry(date: expireDate, timers: remaining, lastSync: lastSyncDate, diag: d))
+            entries.append(PoiEntry(date: expireDate, timers: allTimers, lastSync: lastSyncDate, diag: diag))
         }
 
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: now)!
@@ -115,9 +140,9 @@ struct PoiTimelineProvider: TimelineProvider {
             .compactMap { timer -> ActiveTimer? in
                 guard let completeDate = isoFrac.date(from: timer.completesAt)
                                       ?? iso.date(from: timer.completesAt) else { return nil }
-                guard completeDate > now else { return nil }
                 return ActiveTimer(type: timer.type, message: timer.message,
-                                   completesAt: completeDate, slot: timer.slot)
+                                   completesAt: completeDate, slot: timer.slot,
+                                   durationSeconds: timer.durationSeconds)
             }
             .sorted { $0.completesAt < $1.completesAt }
 
@@ -140,48 +165,59 @@ struct SmallWidgetView: View {
     let entry: PoiEntry
 
     var body: some View {
-        if let timer = entry.timers.first {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(timer.typeLabel)
-                    .font(.caption2).fontWeight(.bold)
-                    .foregroundColor(bgColor)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(timer.typeColor)
-                    .cornerRadius(4)
+        if entry.timers.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "anchor")
+                    .font(.title2).foregroundColor(.gray)
+                Text("作戦行動なし")
+                    .font(.caption).foregroundColor(.gray)
+            }
+        } else {
+            let grouped = Dictionary(grouping: entry.timers, by: { $0.type })
+            let typeOrder = ["expedition", "repair", "construction"]
+            let now = entry.date
 
-                Text(timer.message)
-                    .font(.subheadline).fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(typeOrder, id: \.self) { type in
+                    if let timers = grouped[type] {
+                        HStack(spacing: 4) {
+                            Image(systemName: timers[0].typeIcon)
+                                .font(.system(size: 8))
+                                .foregroundColor(timers[0].typeColor)
+                            Text(timers[0].typeLabel)
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(timers[0].typeColor)
+                        }
+                        .padding(.top, type == typeOrder.first(where: { grouped[$0] != nil }) ? 0 : 2)
 
-                Spacer()
+                        ForEach(timers, id: \.slot) { timer in
+                            HStack(spacing: 4) {
+                                Text("\(timer.slot ?? 0)")
+                                    .font(.system(size: 7))
+                                    .foregroundColor(.white.opacity(0.35))
+                                    .frame(width: 8)
 
-                Text(timer.completesAt, style: .relative)
-                    .font(.title2).fontWeight(.bold)
-                    .foregroundColor(.white)
-                    .monospacedDigit()
+                                GeometryReader { geo in
+                                    ZStack(alignment: .leading) {
+                                        Capsule().fill(Color.white.opacity(0.1))
+                                        Capsule().fill(timer.typeColor)
+                                            .frame(width: geo.size.width * timer.progress(at: now))
+                                    }
+                                }
+                                .frame(height: 4)
 
-                if entry.timers.count > 1 {
-                    Text("他 \(entry.timers.count - 1) 件")
-                        .font(.caption2).foregroundColor(.gray)
+                                Text(timer.remainingFormatted(at: now))
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundColor(timer.typeColor)
+                                    .monospacedDigit()
+                                    .frame(minWidth: 28, alignment: .trailing)
+                            }
+                            .frame(height: 14)
+                        }
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
-            VStack(spacing: 6) {
-                Image(systemName: "bell.slash")
-                    .font(.title2).foregroundColor(.gray)
-                Text("タイマーなし")
-                    .font(.caption).foregroundColor(.gray)
-                if entry.diag != .ok {
-                    Text(entry.diag.rawValue)
-                        .font(.system(size: 9)).foregroundColor(.orange)
-                }
-                if let sync = entry.lastSync {
-                    Text(sync, style: .relative)
-                        .font(.system(size: 9)).foregroundColor(Color(white: 0.4))
-                }
-            }
         }
     }
 }
@@ -193,10 +229,10 @@ struct MediumWidgetView: View {
         if entry.timers.isEmpty {
             HStack {
                 Spacer()
-                VStack(spacing: 6) {
-                    Image(systemName: "bell.slash")
+                VStack(spacing: 8) {
+                    Image(systemName: "anchor")
                         .font(.title2).foregroundColor(.gray)
-                    Text("進行中のタイマーなし")
+                    Text("作戦行動なし")
                         .font(.caption).foregroundColor(.gray)
                     if entry.diag != .ok {
                         Text(entry.diag.rawValue)
@@ -210,33 +246,225 @@ struct MediumWidgetView: View {
                 Spacer()
             }
         } else {
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(entry.timers.prefix(3).enumerated()), id: \.offset) { _, timer in
-                    HStack(spacing: 8) {
-                        Text(timer.typeLabel)
-                            .font(.caption2).fontWeight(.bold)
-                            .foregroundColor(bgColor)
-                            .padding(.horizontal, 5).padding(.vertical, 1)
-                            .background(timer.typeColor)
-                            .cornerRadius(3)
-                            .frame(width: 40)
+            let grouped = Dictionary(grouping: entry.timers, by: { $0.type })
+            let typeOrder = ["expedition", "repair", "construction"]
+            let now = entry.date
 
-                        Text(timer.message)
-                            .font(.caption).foregroundColor(.white)
-                            .lineLimit(1)
+            HStack(alignment: .top, spacing: 12) {
+                ForEach(typeOrder, id: \.self) { type in
+                    if let timers = grouped[type] {
+                        VStack(alignment: .leading, spacing: 4) {
+                            // Section header
+                            HStack(spacing: 3) {
+                                Image(systemName: timers[0].typeIcon)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(timers[0].typeColor)
+                                Text(timers[0].typeLabel)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(timers[0].typeColor)
+                            }
 
-                        Spacer()
+                            ForEach(timers, id: \.slot) { timer in
+                                HStack(spacing: 4) {
+                                    Text("\(timer.slot ?? 0)")
+                                        .font(.system(size: 8))
+                                        .foregroundColor(.white.opacity(0.35))
+                                        .frame(width: 8)
 
-                        Text(timer.completesAt, style: .relative)
-                            .font(.caption).fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .monospacedDigit()
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color.white.opacity(0.1))
+                                            Capsule().fill(timer.typeColor)
+                                                .frame(width: geo.size.width * timer.progress(at: now))
+                                        }
+                                    }
+                                    .frame(height: 4)
+
+                                    Text(timer.remainingFormatted(at: now))
+                                        .font(.system(size: 10, weight: .semibold))
+                                        .foregroundColor(timer.typeColor)
+                                        .monospacedDigit()
+                                        .frame(minWidth: 28, alignment: .trailing)
+                                }
+                                .frame(height: 16)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct LargeWidgetView: View {
+    let entry: PoiEntry
+
+    var body: some View {
+        if entry.timers.isEmpty {
+            VStack(spacing: 8) {
+                Image(systemName: "anchor")
+                    .font(.title2).foregroundColor(.gray)
+                Text("作戦行動なし")
+                    .font(.caption).foregroundColor(.gray)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            let grouped = Dictionary(grouping: entry.timers, by: { $0.type })
+            let typeOrder = ["expedition", "repair", "construction"]
+            let now = entry.date
+
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(typeOrder.enumerated()), id: \.offset) { idx, type in
+                    if let timers = grouped[type] {
+                        if idx > 0 && grouped[typeOrder.prefix(idx).first(where: { grouped[$0] != nil }) ?? ""] != nil {
+                            Divider().background(Color.white.opacity(0.1)).padding(.vertical, 6)
+                        }
+
+                        // Section header
+                        HStack(spacing: 5) {
+                            Image(systemName: timers[0].typeIcon)
+                                .font(.system(size: 11))
+                                .foregroundColor(timers[0].typeColor)
+                            Text(timers[0].typeLabel)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(timers[0].typeColor)
+
+                            Spacer()
+
+                            Text("\(timers.count)枠")
+                                .font(.system(size: 10))
+                                .foregroundColor(timers[0].typeColor.opacity(0.6))
+                        }
+                        .padding(.bottom, 6)
+
+                        // Timer rows
+                        ForEach(timers, id: \.slot) { timer in
+                            HStack(spacing: 8) {
+                                Text("\(timer.slot ?? 0)")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.35))
+                                    .frame(width: 12)
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(timer.message)
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+
+                                    GeometryReader { geo in
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color.white.opacity(0.1))
+                                            Capsule().fill(timer.typeColor)
+                                                .frame(width: geo.size.width * timer.progress(at: now))
+                                        }
+                                    }
+                                    .frame(height: 4)
+                                }
+
+                                Text(timer.completesAt, style: .relative)
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .monospacedDigit()
+                                    .frame(minWidth: 56, alignment: .trailing)
+                            }
+                            .padding(.vertical, 2)
+                        }
                     }
                 }
 
-                if entry.timers.count > 3 {
-                    Text("他 \(entry.timers.count - 3) 件")
-                        .font(.caption2).foregroundColor(.gray)
+                Spacer(minLength: 0)
+
+                // Last sync
+                if let lastSync = entry.lastSync {
+                    HStack {
+                        Spacer()
+                        Text("同期: \(lastSync, style: .relative)前")
+                            .font(.system(size: 9))
+                            .foregroundColor(.white.opacity(0.25))
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+// MARK: - Lock Screen Widgets
+
+struct InlineWidgetView: View {
+    let entry: PoiEntry
+
+    var body: some View {
+        if let timer = entry.timers.first {
+            Label {
+                Text("\(timer.typeLabel) \(timer.remainingFormatted(at: entry.date))")
+            } icon: {
+                Image(systemName: timer.typeIcon)
+            }
+        } else {
+            Label("作戦行動なし", systemImage: "anchor")
+        }
+    }
+}
+
+struct CircularWidgetView: View {
+    let entry: PoiEntry
+
+    var body: some View {
+        if let timer = entry.timers.first {
+            let progress = timer.progress(at: entry.date)
+            Gauge(value: progress) {
+                Image(systemName: timer.typeIcon)
+            } currentValueLabel: {
+                Text(timer.remainingFormatted(at: entry.date))
+                    .font(.system(.caption, design: .rounded, weight: .bold))
+            } minimumValueLabel: {
+                Text("")
+            } maximumValueLabel: {
+                Text("")
+            }
+            .gaugeStyle(.accessoryCircular)
+        } else {
+            ZStack {
+                AccessoryWidgetBackground()
+                Image(systemName: "anchor")
+                    .font(.title3)
+            }
+        }
+    }
+}
+
+struct RectangularWidgetView: View {
+    let entry: PoiEntry
+
+    var body: some View {
+        if entry.timers.isEmpty {
+            HStack {
+                Image(systemName: "anchor")
+                    .font(.caption)
+                Text("作戦行動なし")
+                    .font(.caption)
+            }
+        } else {
+            let now = entry.date
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(Array(entry.timers.prefix(3).enumerated()), id: \.offset) { _, timer in
+                    HStack(spacing: 4) {
+                        Image(systemName: timer.typeIcon)
+                            .font(.system(size: 9))
+                            .frame(width: 12)
+
+                        Gauge(value: timer.progress(at: now)) {
+                            EmptyView()
+                        }
+                        .gaugeStyle(.linearCapacity)
+
+                        Text(timer.remainingFormatted(at: now))
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .frame(minWidth: 26, alignment: .trailing)
+                    }
                 }
             }
         }
@@ -249,8 +477,16 @@ struct PoiWidgetEntryView: View {
 
     var body: some View {
         switch family {
+        case .systemLarge:
+            LargeWidgetView(entry: entry)
         case .systemMedium:
             MediumWidgetView(entry: entry)
+        case .accessoryInline:
+            InlineWidgetView(entry: entry)
+        case .accessoryCircular:
+            CircularWidgetView(entry: entry)
+        case .accessoryRectangular:
+            RectangularWidgetView(entry: entry)
         default:
             SmallWidgetView(entry: entry)
         }
@@ -275,6 +511,9 @@ struct PoiNoticeWidget: Widget {
         }
         .configurationDisplayName("poi タイマー")
         .description("遠征・入渠・建造の残り時間を表示します")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([
+            .systemSmall, .systemMedium, .systemLarge,
+            .accessoryInline, .accessoryCircular, .accessoryRectangular,
+        ])
     }
 }

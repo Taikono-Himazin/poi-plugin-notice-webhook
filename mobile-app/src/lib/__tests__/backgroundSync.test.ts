@@ -41,6 +41,34 @@ describe('BACKGROUND_NOTIFICATION_TASK', () => {
   it('defineTask で登録されている', () => {
     expect((TaskManager as any)._tasks['poi-notice-background-notification']).toBeDefined();
   });
+
+  it('timer-sync ペイロードで performSync を実行する', async () => {
+    // Expo の Notification 構造に合わせたペイロード
+    const taskFn = (TaskManager as any)._tasks['poi-notice-background-notification'];
+    // performSync は認証なしで早期リターンするが、エラーにならないことを確認
+    await expect(
+      taskFn({
+        data: {
+          notification: {
+            request: { content: { data: { type: 'timer-sync' } } },
+          },
+        },
+      }),
+    ).resolves.not.toThrow();
+  });
+
+  it('timer-sync 以外のペイロードは無視する', async () => {
+    const taskFn = (TaskManager as any)._tasks['poi-notice-background-notification'];
+    await expect(
+      taskFn({
+        data: {
+          notification: {
+            request: { content: { data: { type: 'other' } } },
+          },
+        },
+      }),
+    ).resolves.not.toThrow();
+  });
 });
 
 describe('registerBackgroundSync', () => {

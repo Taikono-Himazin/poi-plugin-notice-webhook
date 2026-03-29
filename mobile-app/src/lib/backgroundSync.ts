@@ -58,8 +58,10 @@ TaskManager.defineTask(BACKGROUND_SYNC_TASK, async () => {
 
 // サイレントプッシュ受信時のバックグラウンドタスク
 TaskManager.defineTask(BACKGROUND_NOTIFICATION_TASK, async ({ data }) => {
-  const notification = data as { body?: { data?: { type?: string } } };
-  if (notification?.body?.data?.type !== 'timer-sync') return;
+  const payload = data as {
+    notification?: { request?: { content?: { data?: { type?: string; [key: string]: unknown } } } };
+  };
+  if (payload?.notification?.request?.content?.data?.type !== 'timer-sync') return;
 
   try {
     await performSync('push');

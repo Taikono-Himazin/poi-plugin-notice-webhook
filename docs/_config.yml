@@ -6,6 +6,7 @@ lang: ja
 header_pages:
   - index.md
   - usage.md
+  - mobile-app.md
   - api.md
   - setup.md
   - privacy.md

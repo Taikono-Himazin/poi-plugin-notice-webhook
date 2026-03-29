@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>poi Widget Preview</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    background: #1a1a2e; color: #fff; padding: 40px; min-height: 100vh;
+  }
+  h1 { font-size: 14px; color: #888; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  h2 { font-size: 12px; color: #666; margin-bottom: 12px; font-weight: normal; }
+  .preview-section { margin-bottom: 40px; }
+  .widgets-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .section-title { font-size: 18px; color: #aaa; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+
+  .widget { background: rgb(15, 15, 26); border-radius: 22px; padding: 16px; overflow: hidden; }
+  .widget-small { width: 170px; height: 170px; }
+  .widget-medium { width: 364px; height: 170px; }
+  .widget-large { width: 364px; height: 376px; }
+
+  .color-expedition   { color: rgb(88, 101, 242); }
+  .color-repair       { color: rgb(87, 242, 135); }
+  .color-construction { color: rgb(254, 231, 92); }
+  .fill-expedition   { background: rgb(88, 101, 242); }
+  .fill-repair       { background: rgb(87, 242, 135); }
+  .fill-construction { background: rgb(254, 231, 92); }
+
+  /* --- Small: compact progress rows --- */
+  .small-compact { display: flex; flex-direction: column; height: 100%; gap: 1px; }
+  .sec-label { font-size: 9px; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 3px; margin-top: 3px; }
+  .sec-label:first-child { margin-top: 0; }
+  .timer-row { display: flex; align-items: center; gap: 5px; height: 15px; }
+  .timer-row .slot { font-size: 7px; color: rgba(255,255,255,0.3); width: 7px; text-align: center; }
+  .progress-track { flex: 1; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 2px; }
+  .timer-row .remaining { font-size: 9px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 28px; text-align: right; }
+
+  /* --- Medium: multi-column by type --- */
+  .medium-columns { display: flex; gap: 14px; height: 100%; align-items: flex-start; }
+  .medium-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .medium-col .col-header { font-size: 10px; font-weight: 700; display: flex; align-items: center; gap: 3px; margin-bottom: 2px; }
+  .medium-col .col-header i { font-size: 9px; }
+  .med-timer-row { display: flex; align-items: center; gap: 4px; height: 16px; }
+  .med-timer-row .slot { font-size: 8px; color: rgba(255,255,255,0.3); width: 8px; text-align: center; }
+  .med-timer-row .remaining { font-size: 10px; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 28px; text-align: right; }
+
+  /* --- Large: full dashboard --- */
+  .large-dashboard { display: flex; flex-direction: column; height: 100%; }
+  .large-section { margin-bottom: 4px; }
+  .large-section-header {
+    display: flex; align-items: center; gap: 5px; margin-bottom: 6px;
+  }
+  .large-section-header i { font-size: 12px; }
+  .large-section-header .label { font-size: 13px; font-weight: 700; }
+  .large-section-header .count { font-size: 10px; opacity: 0.5; margin-left: auto; }
+  .large-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 6px 0; }
+  .large-timer-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .large-timer-row .slot { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.35); width: 14px; text-align: center; }
+  .large-timer-row .msg { font-size: 12px; color: #fff; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .large-timer-row .bar-wrap { width: 60px; height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+  .large-timer-row .bar-fill { height: 100%; border-radius: 2px; }
+  .large-timer-row .time { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 56px; text-align: right; }
+  .large-sync { font-size: 9px; color: rgba(255,255,255,0.25); text-align: right; margin-top: auto; padding-top: 4px; }
+
+  /* --- Lock Screen --- */
+  .lock-screen-bg { background: linear-gradient(135deg, #1c1c3a 0%, #2a2a4a 100%); border-radius: 16px; padding: 24px; display: inline-block; }
+  .acc-inline { display: inline-flex; align-items: center; gap: 5px; color: #ddd; font-size: 13px; font-weight: 500; background: rgba(255,255,255,0.06); border-radius: 8px; padding: 4px 10px; }
+  .acc-inline i { font-size: 12px; }
+  .acc-circular { width: 76px; height: 76px; position: relative; display: flex; align-items: center; justify-content: center; }
+  .acc-circular svg { position: absolute; top: 0; left: 0; }
+  .acc-circular .circ-value { font-size: 18px; font-weight: 700; color: #eee; font-variant-numeric: tabular-nums; }
+  .acc-circular .circ-unit { font-size: 8px; color: #aaa; margin-top: -2px; }
+  .acc-circular-empty { width: 76px; height: 76px; border-radius: 50%; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; }
+  .acc-circular-empty i { font-size: 22px; color: rgba(255,255,255,0.3); }
+  .acc-rect { width: 172px; padding: 6px 0; display: flex; flex-direction: column; gap: 4px; }
+  .acc-rect-row { display: flex; align-items: center; gap: 5px; height: 18px; }
+  .acc-rect-row i { font-size: 10px; color: #ccc; width: 14px; text-align: center; }
+  .acc-rect-row .rect-gauge { flex: 1; height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; overflow: hidden; }
+  .acc-rect-row .rect-gauge-fill { height: 100%; border-radius: 2px; background: rgba(255,255,255,0.6); }
+  .acc-rect-row .rect-time { font-size: 11px; font-weight: 600; color: #ddd; font-variant-numeric: tabular-nums; min-width: 26px; text-align: right; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 8px; }
+  .empty-state i { font-size: 24px; color: #555; }
+  .empty-state span { font-size: 12px; color: #555; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+  .tab { padding: 6px 16px; border-radius: 8px; background: rgba(255,255,255,0.08); color: #aaa; font-size: 13px; cursor: pointer; border: none; transition: all 0.2s; }
+  .tab:hover { background: rgba(255,255,255,0.15); }
+  .tab.active { background: rgb(88, 101, 242); color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="showScenario('full')">9 timers (3遠征+4入渠+2建造)</button>
+  <button class="tab" onclick="showScenario('partial')">3 timers</button>
+  <button class="tab" onclick="showScenario('empty')">No timers</button>
+</div>
+
+<!-- ============================================ -->
+<!-- FULL: 3 expedition + 4 repair               -->
+<!-- ============================================ -->
+<div id="scenario-full">
+<div class="section-title">Home Screen Widgets</div>
+
+<!-- systemSmall -->
+<div class="preview-section">
+  <h1>systemSmall</h1><h2>170 x 170 pt</h2>
+  <div class="widgets-row">
+    <div class="widget widget-small">
+      <div class="small-compact">
+        <div class="sec-label color-expedition"><i class="fas fa-paper-plane" style="font-size:8px"></i> 遠征</div>
+        <div class="timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:78%"></div></div><span class="remaining color-expedition">00:32</span></div>
+        <div class="timer-row"><span class="slot">3</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:42%"></div></div><span class="remaining color-expedition">01:08</span></div>
+        <div class="timer-row"><span class="slot">4</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:15%"></div></div><span class="remaining color-expedition">05:12</span></div>
+        <div class="sec-label color-repair" style="margin-top:5px"><i class="fas fa-wrench" style="font-size:8px"></i> 入渠</div>
+        <div class="timer-row"><span class="slot">1</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:88%"></div></div><span class="remaining color-repair">00:00</span></div>
+        <div class="timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:88%"></div></div><span class="remaining color-repair">00:12</span></div>
+        <div class="timer-row"><span class="slot">3</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:55%"></div></div><span class="remaining color-repair">00:45</span></div>
+        <div class="timer-row"><span class="slot">4</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:30%"></div></div><span class="remaining color-repair">02:08</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- systemMedium -->
+<div class="preview-section">
+  <h1>systemMedium</h1><h2>364 x 170 pt &mdash; Multi-column</h2>
+  <div class="widgets-row">
+    <div class="widget widget-medium">
+      <div class="medium-columns">
+        <!-- Expedition column -->
+        <div class="medium-col">
+          <div class="col-header color-expedition"><i class="fas fa-paper-plane"></i> 遠征</div>
+          <div class="med-timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:78%"></div></div><span class="remaining color-expedition">00:32</span></div>
+          <div class="med-timer-row"><span class="slot">3</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:42%"></div></div><span class="remaining color-expedition">01:08</span></div>
+          <div class="med-timer-row"><span class="slot">4</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:15%"></div></div><span class="remaining color-expedition">05:12</span></div>
+        </div>
+        <!-- Repair column -->
+        <div class="medium-col">
+          <div class="col-header color-repair"><i class="fas fa-wrench"></i> 入渠</div>
+          <div class="med-timer-row"><span class="slot">1</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:88%"></div></div><span class="remaining color-repair">00:00</span></div>
+          <div class="med-timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:88%"></div></div><span class="remaining color-repair">00:12</span></div>
+          <div class="med-timer-row"><span class="slot">3</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:55%"></div></div><span class="remaining color-repair">00:45</span></div>
+          <div class="med-timer-row"><span class="slot">4</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:30%"></div></div><span class="remaining color-repair">02:08</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- systemLarge -->
+<div class="preview-section">
+  <h1>systemLarge</h1><h2>364 x 376 pt &mdash; Full Dashboard</h2>
+  <div class="widgets-row">
+    <div class="widget widget-large">
+      <div class="large-dashboard">
+        <!-- Expedition section -->
+        <div class="large-section">
+          <div class="large-section-header color-expedition">
+            <i class="fas fa-paper-plane"></i>
+            <span class="label">遠征</span>
+            <span class="count">3枠</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">2</span>
+            <span class="msg">東京急行(弐)</span>
+            <div class="bar-wrap"><div class="bar-fill fill-expedition" style="width:78%"></div></div>
+            <span class="time color-expedition">00:32</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">3</span>
+            <span class="msg">海上護衛任務</span>
+            <div class="bar-wrap"><div class="bar-fill fill-expedition" style="width:42%"></div></div>
+            <span class="time color-expedition">01:08</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">4</span>
+            <span class="msg">水上機基地建設</span>
+            <div class="bar-wrap"><div class="bar-fill fill-expedition" style="width:15%"></div></div>
+            <span class="time color-expedition">05:12</span>
+          </div>
+        </div>
+
+        <div class="large-divider"></div>
+
+        <!-- Repair section -->
+        <div class="large-section">
+          <div class="large-section-header color-repair">
+            <i class="fas fa-wrench"></i>
+            <span class="label">入渠</span>
+            <span class="count">4枠</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">1</span>
+            <span class="msg">島風 Lv.98 HP 12/36</span>
+            <div class="bar-wrap"><div class="bar-fill fill-repair" style="width:88%"></div></div>
+            <span class="time color-repair">00:12</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">2</span>
+            <span class="msg">雪風 Lv.95 HP 8/32</span>
+            <div class="bar-wrap"><div class="bar-fill fill-repair" style="width:55%"></div></div>
+            <span class="time color-repair">00:45</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">3</span>
+            <span class="msg">大和 Lv.90 HP 45/97</span>
+            <div class="bar-wrap"><div class="bar-fill fill-repair" style="width:30%"></div></div>
+            <span class="time color-repair">02:08</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">4</span>
+            <span class="msg">武蔵 Lv.88 HP 22/94</span>
+            <div class="bar-wrap"><div class="bar-fill fill-repair" style="width:10%"></div></div>
+            <span class="time color-repair">08:02</span>
+          </div>
+        </div>
+
+        <div class="large-divider"></div>
+
+        <!-- Construction section -->
+        <div class="large-section">
+          <div class="large-section-header color-construction">
+            <i class="fas fa-hammer"></i>
+            <span class="label">建造</span>
+            <span class="count">2枠</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">1</span>
+            <span class="msg">大型建造 4000/6000/6000/2000</span>
+            <div class="bar-wrap"><div class="bar-fill fill-construction" style="width:20%"></div></div>
+            <span class="time color-construction">04:00</span>
+          </div>
+          <div class="large-timer-row">
+            <span class="slot">3</span>
+            <span class="msg">最低値建造 30/30/30/30</span>
+            <div class="bar-wrap"><div class="bar-fill fill-construction" style="width:70%"></div></div>
+            <span class="time color-construction">00:08</span>
+          </div>
+        </div>
+
+        <div class="large-sync">同期: 3分前</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lock Screen -->
+<div class="section-title" style="margin-top:16px">Lock Screen Widgets</div>
+<div class="preview-section">
+  <div class="widgets-row" style="gap:32px;align-items:flex-start">
+    <div>
+      <h1>accessoryInline</h1><h2>Date line</h2>
+      <div class="acc-inline"><i class="fas fa-wrench"></i><span>入渠 00:12</span></div>
+    </div>
+    <div>
+      <h1>accessoryCircular</h1><h2>76 x 76 pt</h2>
+      <div class="acc-circular">
+        <svg width="76" height="76" viewBox="0 0 76 76">
+          <circle cx="38" cy="38" r="33" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"/>
+          <circle cx="38" cy="38" r="33" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="5"
+            stroke-dasharray="207.3" stroke-dashoffset="24.9" stroke-linecap="round" transform="rotate(-90 38 38)"/>
+        </svg>
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <span class="circ-value" style="font-size:14px">00:12</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h1>accessoryRectangular</h1><h2>172 x 76 pt</h2>
+      <div class="lock-screen-bg">
+        <div class="acc-rect">
+          <div class="acc-rect-row"><i class="fas fa-wrench"></i><div class="rect-gauge"><div class="rect-gauge-fill" style="width:88%"></div></div><span class="rect-time">00:12</span></div>
+          <div class="acc-rect-row"><i class="fas fa-paper-plane"></i><div class="rect-gauge"><div class="rect-gauge-fill" style="width:78%"></div></div><span class="rect-time">00:32</span></div>
+          <div class="acc-rect-row"><i class="fas fa-wrench"></i><div class="rect-gauge"><div class="rect-gauge-fill" style="width:55%"></div></div><span class="rect-time">00:45</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================ -->
+<!-- PARTIAL: 1 expedition + 2 repair            -->
+<!-- ============================================ -->
+<div id="scenario-partial" style="display:none">
+<div class="section-title">Home Screen Widgets</div>
+
+<div class="preview-section">
+  <h1>systemSmall</h1><h2>170 x 170 pt</h2>
+  <div class="widgets-row">
+    <div class="widget widget-small">
+      <div class="small-compact">
+        <div class="sec-label color-expedition"><i class="fas fa-paper-plane" style="font-size:8px"></i> 遠征</div>
+        <div class="timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:78%"></div></div><span class="remaining color-expedition">00:32</span></div>
+        <div class="sec-label color-repair" style="margin-top:5px"><i class="fas fa-wrench" style="font-size:8px"></i> 入渠</div>
+        <div class="timer-row"><span class="slot">1</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:88%"></div></div><span class="remaining color-repair">00:12</span></div>
+        <div class="timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:55%"></div></div><span class="remaining color-repair">00:45</span></div>
+        <div style="flex:1"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="preview-section">
+  <h1>systemMedium</h1><h2>364 x 170 pt</h2>
+  <div class="widgets-row">
+    <div class="widget widget-medium">
+      <div class="medium-columns">
+        <div class="medium-col">
+          <div class="col-header color-expedition"><i class="fas fa-paper-plane"></i> 遠征</div>
+          <div class="med-timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-expedition" style="width:78%"></div></div><span class="remaining color-expedition">00:32</span></div>
+        </div>
+        <div class="medium-col">
+          <div class="col-header color-repair"><i class="fas fa-wrench"></i> 入渠</div>
+          <div class="med-timer-row"><span class="slot">1</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:88%"></div></div><span class="remaining color-repair">00:12</span></div>
+          <div class="med-timer-row"><span class="slot">2</span><div class="progress-track"><div class="progress-fill fill-repair" style="width:55%"></div></div><span class="remaining color-repair">00:45</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="preview-section">
+  <h1>systemLarge</h1><h2>364 x 376 pt</h2>
+  <div class="widgets-row">
+    <div class="widget widget-large">
+      <div class="large-dashboard">
+        <div class="large-section">
+          <div class="large-section-header color-expedition"><i class="fas fa-paper-plane"></i><span class="label">遠征</span><span class="count">1枠</span></div>
+          <div class="large-timer-row"><span class="slot">2</span><span class="msg">東京急行(弐)</span><div class="bar-wrap"><div class="bar-fill fill-expedition" style="width:78%"></div></div><span class="time color-expedition">00:32</span></div>
+        </div>
+        <div class="large-divider"></div>
+        <div class="large-section">
+          <div class="large-section-header color-repair"><i class="fas fa-wrench"></i><span class="label">入渠</span><span class="count">2枠</span></div>
+          <div class="large-timer-row"><span class="slot">1</span><span class="msg">島風 Lv.98 HP 12/36</span><div class="bar-wrap"><div class="bar-fill fill-repair" style="width:88%"></div></div><span class="time color-repair">00:12</span></div>
+          <div class="large-timer-row"><span class="slot">2</span><span class="msg">雪風 Lv.95 HP 8/32</span><div class="bar-wrap"><div class="bar-fill fill-repair" style="width:55%"></div></div><span class="time color-repair">00:45</span></div>
+        </div>
+        <div class="large-sync">同期: 3分前</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-title" style="margin-top:16px">Lock Screen Widgets</div>
+<div class="preview-section">
+  <div class="widgets-row" style="gap:32px;align-items:flex-start">
+    <div><h1>accessoryInline</h1><h2>Date line</h2><div class="acc-inline"><i class="fas fa-wrench"></i><span>入渠 00:12</span></div></div>
+    <div>
+      <h1>accessoryCircular</h1><h2>76 x 76 pt</h2>
+      <div class="acc-circular">
+        <svg width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="33" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="5"/><circle cx="38" cy="38" r="33" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="5" stroke-dasharray="207.3" stroke-dashoffset="24.9" stroke-linecap="round" transform="rotate(-90 38 38)"/></svg>
+        <div style="display:flex;flex-direction:column;align-items:center"><span class="circ-value" style="font-size:14px">00:12</span></div>
+      </div>
+    </div>
+    <div>
+      <h1>accessoryRectangular</h1><h2>172 x 76 pt</h2>
+      <div class="lock-screen-bg"><div class="acc-rect">
+        <div class="acc-rect-row"><i class="fas fa-wrench"></i><div class="rect-gauge"><div class="rect-gauge-fill" style="width:88%"></div></div><span class="rect-time">00:12</span></div>
+        <div class="acc-rect-row"><i class="fas fa-paper-plane"></i><div class="rect-gauge"><div class="rect-gauge-fill" style="width:78%"></div></div><span class="rect-time">00:32</span></div>
+        <div class="acc-rect-row"><i class="fas fa-wrench"></i><div class="rect-gauge"><div class="rect-gauge-fill" style="width:55%"></div></div><span class="rect-time">00:45</span></div>
+      </div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============================================ -->
+<!-- EMPTY                                        -->
+<!-- ============================================ -->
+<div id="scenario-empty" style="display:none">
+<div class="section-title">Home Screen Widgets</div>
+<div class="preview-section"><h1>systemSmall</h1><h2>170 x 170 pt</h2><div class="widgets-row"><div class="widget widget-small"><div class="empty-state"><i class="fas fa-anchor"></i><span>作戦行動なし</span></div></div></div></div>
+<div class="preview-section"><h1>systemMedium</h1><h2>364 x 170 pt</h2><div class="widgets-row"><div class="widget widget-medium"><div class="empty-state"><i class="fas fa-anchor"></i><span>作戦行動なし</span></div></div></div></div>
+<div class="preview-section"><h1>systemLarge</h1><h2>364 x 376 pt</h2><div class="widgets-row"><div class="widget widget-large"><div class="empty-state"><i class="fas fa-anchor"></i><span>作戦行動なし</span></div></div></div></div>
+
+<div class="section-title" style="margin-top:16px">Lock Screen Widgets</div>
+<div class="preview-section">
+  <div class="widgets-row" style="gap:32px;align-items:flex-start">
+    <div><h1>accessoryInline</h1><h2>Date line</h2><div class="acc-inline"><i class="fas fa-anchor"></i><span>作戦行動なし</span></div></div>
+    <div><h1>accessoryCircular</h1><h2>76 x 76 pt</h2><div class="acc-circular-empty"><i class="fas fa-bell-slash"></i></div></div>
+    <div><h1>accessoryRectangular</h1><h2>172 x 76 pt</h2><div class="lock-screen-bg"><div class="acc-rect" style="align-items:center;justify-content:center;height:56px"><div style="display:flex;align-items:center;gap:6px;color:#666"><i class="fas fa-anchor" style="font-size:12px"></i><span style="font-size:12px">作戦行動なし</span></div></div></div></div>
+  </div>
+</div>
+</div>
+
+<script>
+function showScenario(name) {
+  document.querySelectorAll('[id^="scenario-"]').forEach(el => el.style.display = 'none');
+  document.getElementById('scenario-' + name).style.display = 'block';
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

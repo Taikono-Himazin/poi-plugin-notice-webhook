@@ -72,17 +72,26 @@ async function performOAuthLogin(config: AuthConfig, extraParams: Record<string,
   const result = await request.promptAsync(discovery);
 
   if (result.type === 'cancel') throw new Error('ログインがキャンセルされました');
-  if (result.type !== 'success') throw new Error('ログインに失敗しました');
+  if (result.type !== 'success') {
+    const detail = result.type === 'error' && 'error' in result ? ` (${(result as any).error?.message ?? result.type})` : ` (${result.type})`;
+    throw new Error(`ログインに失敗しました${detail}`);
+  }
 
-  const tokenResult = await AuthSession.exchangeCodeAsync(
-    {
-      clientId: config.clientId,
-      code: result.params.code,
-      redirectUri: REDIRECT_URI,
-      extraParams: { code_verifier: request.codeVerifier ?? '' },
-    },
-    discovery,
-  );
+  let tokenResult;
+  try {
+    tokenResult = await AuthSession.exchangeCodeAsync(
+      {
+        clientId: config.clientId,
+        code: result.params.code,
+        redirectUri: REDIRECT_URI,
+        extraParams: { code_verifier: request.codeVerifier ?? '' },
+      },
+      discovery,
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`トークン交換に失敗しました: ${msg}`);
+  }
 
   const idToken = tokenResult.idToken;
   if (!idToken) throw new Error('ID トークンが取得できませんでした');
