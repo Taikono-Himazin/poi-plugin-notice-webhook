@@ -18,7 +18,7 @@ A Webhook notification plugin for [poi](https://github.com/poooi/poi). Sends Dis
 
 - **Direct mode** — Send Webhooks directly from the machine running poi (no setup required)
 - **Cloud mode** — Cloud-based notifications. Delivered even when poi is closed
-- **Mobile app** — iOS / Android app with push notifications to your smartphone
+- **Mobile app** — iOS ([App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643)) / Android — Push notifications to your smartphone
 - Supports Discord and Slack
 
 ## Quick Start
@@ -40,7 +40,7 @@ A Webhook notification plugin for [poi](https://github.com/poooi/poi). Sends Dis
 
 Push notifications directly to your smartphone — works with Cloud mode. No Webhook setup required.
 
-1. Install the iOS / Android app
+1. Install the app from [App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643) (iOS) or Google Play (Android)
 2. Sign in with the same account as your poi plugin
 3. Timers sync automatically and push notifications are delivered at completion time
 

@@ -18,7 +18,7 @@ nav_order: 1
 
 - **直接配送模式** — 从运行 poi 的机器直接发送 Webhook（无需设置）
 - **云端配送模式** — 通过云端发送通知。即使关闭 poi 也能收到通知
-- **移动应用** — iOS / Android 应用，通过推送通知直接发送到手机
+- **移动应用** — iOS（[App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643)）/ Android 支持。通过推送通知直接发送到手机
 - 支持 Discord 和 Slack
 
 ## 快速开始
@@ -40,7 +40,7 @@ nav_order: 1
 
 与云端配送模式联动，直接向手机发送推送通知。无需设置 Webhook。
 
-1. 安装 iOS / Android 应用
+1. 从 [App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643)（iOS）或 Google Play（Android）安装应用
 2. 使用与 poi 插件相同的账户登录
 3. 计时器自动同步，完成时自动推送通知
 

@@ -72,7 +72,7 @@ iOS / Android 专用应用。与云端配送模式联动，直接向手机发送
 
 ### 初始设置
 
-1. 安装应用
+1. 从 [App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643)（iOS）或 Google Play（Android）安装应用
 2. 使用与 poi 插件相同的账户登录（邮箱 / Google / Apple）
 3. 出现通知权限请求时选择「允许」
 

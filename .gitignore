@@ -150,3 +150,5 @@ src/aws-outputs.json
 
 *.p8
 google-service-account.json
+google-services.json
+*-firebase-adminsdk-*.json

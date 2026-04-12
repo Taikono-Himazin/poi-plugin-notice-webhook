@@ -72,7 +72,7 @@ A dedicated app for iOS and Android. Works with Cloud mode to send push notifica
 
 ### Initial Setup
 
-1. Install the app
+1. Install the app from [App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643) (iOS) or Google Play (Android)
 2. Sign in with the same account as your poi plugin (Email / Google / Apple)
 3. Allow notifications when prompted
 
