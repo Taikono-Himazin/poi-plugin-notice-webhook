@@ -13,6 +13,7 @@
 - 遠征・入渠・建造の完了を Discord または Slack へ通知
 - **直接送信モード** — poi 起動中に Webhook を直接送信（設定不要）
 - **クラウド経由モード** — AWS バックエンド経由で poi を閉じていても通知が届く
+- **モバイルアプリ** — iOS（[App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643)）/ Android 対応。スマートフォンへプッシュ通知
 - 完了 **1分前** に通知を受け取れる
 - Discord / Slack に対応
 

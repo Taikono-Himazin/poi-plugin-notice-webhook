@@ -10,6 +10,8 @@ nav_order: 7
 
 iOS / Android 向けの専用アプリです。クラウド配信モードと連携し、スマートフォンへ直接プッシュ通知を送ります。Discord や Slack の Webhook 設定は不要です。
 
+[![App Store からダウンロード](https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg)](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643)
+
 ![モバイルアプリ ホーム画面](images/iphone_image.png){: width="300" }
 
 ---
@@ -30,7 +32,7 @@ iOS / Android 向けの専用アプリです。クラウド配信モードと連
 
 ## 初回設定
 
-1. アプリをインストール
+1. iOS は [App Store](https://apps.apple.com/jp/app/poi%E9%80%9A%E7%9F%A5%E8%BB%A2%E9%80%81/id6760803643) からアプリをインストール
 2. poi プラグインと同じアカウント（メール / Google / Apple）でログイン
 3. 通知の許可を求められたら「許可」を選択
 

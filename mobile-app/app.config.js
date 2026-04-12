@@ -36,6 +36,7 @@ module.exports = {
         backgroundColor: '#1a1a2e',
       },
       package: 'com.github.taikonohimazin.poinotice',
+      googleServicesFile: './google-services.json',
     },
     plugins: [
       'expo-apple-authentication',
