@@ -7,7 +7,7 @@
   // 開発に必要なツール群
   "features": {
     // aws/, mobile-app/ 共通ランタイム (Lambda に合わせて v24 固定)
-    "ghcr.io/devcontainers/features/node:1": {
+    "ghcr.io/devcontainers/features/node:2": {
       "version": "24"
     },
     // CDK deploy / Lambda 操作用
